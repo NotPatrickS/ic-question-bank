@@ -210,12 +210,14 @@ function renderQuestionBody(id, ctx) {
 
   const marked = Store.marks[id];
   const isJudge = q.type === "judge";
+  const isCode = q.type === "judge" && q.starter && q.checks;
+  const typePill = isCode ? "编程 · 自动检查" : isJudge ? "简答 · 自评" : "单选";
 
   $app.innerHTML = `
     <div class="card" style="margin-top:32px">
       <div class="qmeta">
         <span class="pill">${esc(q.topic)}</span>
-        <span class="pill gray">${isJudge ? "简答 · 自评" : "单选"}</span>
+        <span class="pill gray">${typePill}</span>
         ${(q.tags || []).map(t => `<span class="pill gray">#${esc(t)}</span>`).join("")}
         <span style="margin-left:auto"></span>
         <button class="btn small ${marked === "review" ? "warn" : "ghost"}" id="mkReview">需复习</button>
@@ -224,6 +226,31 @@ function renderQuestionBody(id, ctx) {
       <h2 class="qtitle">${esc(q.question).replace(/\n/g, "<br>")}</h2>
       ${q.code ? codeBlock(q.code) : ""}
       <div id="answerArea"></div>
+      ${isCode ? `
+      <div class="cw-wrap">
+        <div class="cw-head">
+          <span class="cw-title">main.sv</span>
+          <div class="cw-head-actions">
+            <button class="btn small ghost" id="cwReset">重置</button>
+          </div>
+        </div>
+        <div class="cw-editor"><div id="cwMount"></div></div>
+        <div class="cw-actions">
+          <button class="btn" id="cwRun">▶ 运行自检</button>
+          <button class="btn ghost" id="revealRef">查看参考答案</button>
+        </div>
+        <div class="cw-result chk-list" id="cwResult" style="display:none"></div>
+      </div>
+      <div id="judgeArea">
+        <div id="refBlock" style="display:none">
+          ${q.solution ? `<div class="cw-solution"><div class="cw-sol-title">参考实现</div>${codeBlock(q.solution)}</div>` : ""}
+          ${q.answer_ref ? `<div class="explain"><b>要点：</b><br>${esc(q.answer_ref).replace(/\n/g, "<br>")}</div>` : ""}
+          <div class="judge-btns">
+            <button class="btn green" id="jRight">我答对了 ✓</button>
+            <button class="btn red" id="jWrong">没答好 ✗ 记入错题</button>
+          </div>
+        </div>
+      </div>` : `
       <div id="judgeArea" ${isJudge ? "" : 'style="display:none"'}>
         <div class="qactions">
           <button class="btn ghost" id="revealRef">查看参考答案</button>
@@ -235,7 +262,7 @@ function renderQuestionBody(id, ctx) {
             <button class="btn red" id="jWrong">没答好 ✗ 记入错题</button>
           </div>
         </div>
-      </div>
+      </div>`}
       <div class="qactions" id="qActions">
         <button class="btn" id="btnNext">下一题 →</button>
         <span class="qprogress" id="qProgress"></span>
@@ -245,7 +272,40 @@ function renderQuestionBody(id, ctx) {
   const answerArea = document.getElementById("answerArea");
   const judgeArea = document.getElementById("judgeArea");
 
-  if (isJudge) {
+  if (isCode) {
+    // 编程题：编辑器 + 运行自检（通过后仍可对照参考实现自评）
+    document.getElementById("btnNext").style.visibility = "hidden";
+    const ed = makeEditor(document.getElementById("cwMount"), { value: q.starter, rows: 16 });
+    document.getElementById("cwReset").onclick = () => ed.set(q.starter);
+
+    document.getElementById("cwRun").onclick = () => {
+      const src = ed.get();
+      const box = document.getElementById("cwResult");
+      box.style.display = "";
+      let pass = 0;
+      const rows = q.checks.map(c => {
+        let ok = false;
+        try { ok = new RegExp(c.re, "m").test(src); } catch { ok = false; }
+        if (ok) pass++;
+        return `<div class="chk ${ok ? "pass" : "fail"}"><span class="chk-ico">${ok ? "✓" : "✗"}</span>${esc(c.desc)}</div>`;
+      }).join("");
+      const all = pass === q.checks.length;
+      box.innerHTML = `
+        <div class="chk-sum ${all ? "pass" : "fail"}">${all ? "✓ 全部检查通过" : `${pass}/${q.checks.length} 项通过`} · 通过后请对照参考实现自评</div>
+        <div class="chk-list">${rows}</div>`;
+      if (all) {
+        document.getElementById("revealRef").style.display = "";
+        document.getElementById("revealRef").classList.add("glow");
+      }
+    };
+
+    document.getElementById("revealRef").onclick = () => {
+      document.getElementById("refBlock").style.display = "";
+      document.getElementById("revealRef").style.display = "none";
+    };
+    document.getElementById("jRight").onclick = () => finish(true);
+    document.getElementById("jWrong").onclick = () => finish(false);
+  } else if (isJudge) {
     // 简答题：先自己想 → 查看参考答案 → 自评
     judgeArea.style.display = "";
     document.getElementById("btnNext").style.visibility = "hidden";
@@ -344,7 +404,7 @@ function renderQuestionBody(id, ctx) {
 /* ---------- 每日打卡 ---------- */
 function renderDaily() {
   const today = todayStr();
-  const d = Store.ensureDaily(today, pickRandom(DAILY_COUNT, QUESTIONS).map(q => q.id));
+  const d = Store.ensureDaily(today, pickRandom(DAILY_COUNT, QUESTIONS).map(q => q.id), QUESTIONS.map(q => q.id));
 
   $app.innerHTML = `
     <div class="page-head center">
@@ -526,11 +586,15 @@ function renderSearch() {
 
 /* ---------- 路线图 ---------- */
 function renderRoadmap() {
+  // 展开状态跨重渲染保留（本次页面会话内）
+  if (!renderRoadmap.expanded) renderRoadmap.expanded = new Set();
+  const expanded = renderRoadmap.expanded;
+
   $app.innerHTML = `
     <div class="page-head">
       <p class="eyebrow">学习路线</p>
       <h1>从基础到实战。</h1>
-      <p class="sub">3 个阶段 15 个模块：组合逻辑 → 时序原语 → 编码六件套。</p>
+      <p class="sub">3 个阶段 15 个模块：组合逻辑 → 时序原语 → 编码六件套。点击阶段卡片展开模块。</p>
     </div>
     <div id="roadCard" style="padding-top:12px"></div>`;
   const card = document.getElementById("roadCard");
@@ -539,23 +603,44 @@ function renderRoadmap() {
     const done = qs.filter(q => Store.records[q.id]).length;
     const pct = qs.length ? Math.round(done / qs.length * 100) : 0;
     const stepEl = document.createElement("div");
-    stepEl.className = "road-step";
+    stepEl.className = "road-step" + (expanded.has(i) ? " open" : "");
+
+    // 模块行（展开区）
+    const modRows = step.topics.map(tp => {
+      const tqs = QUESTIONS.filter(q => q.topic === tp);
+      const tdone = tqs.filter(q => Store.records[q.id]).length;
+      const tpct = tqs.length ? Math.round(tdone / tqs.length * 100) : 0;
+      const tpState = tdone === 0 ? "gray" : tpct >= 100 ? "ok" : "warn";
+      return `
+        <div class="module-row" data-tp="${esc(tp)}">
+          <span class="m-name">${esc(tp)}</span>
+          <span class="pill ${tpState}">${tdone}/${tqs.length}</span>
+          <span class="m-bar"><div class="bar"><i style="width:${tpct}%"></i></div></span>
+          <span class="m-go">开始 ›</span>
+        </div>`;
+    }).join("");
+
     stepEl.innerHTML = `
       <div class="road-rail">
         <div class="road-dot ${pct >= 100 ? "done" : ""}">${pct >= 100 ? "✓" : i + 1}</div>
         ${i < ROADMAP.length - 1 ? '<div class="road-line"></div>' : ""}
       </div>
       <div class="road-body">
-        <h3>${esc(step.name)} <span class="pill ${pct >= 100 ? "ok" : "gray"}">${done}/${qs.length}</span></h3>
-        <p>${esc(step.desc)}</p>
-        <div class="bar"><i style="width:${pct}%"></i></div>
-        <p style="margin:14px 0 0"><a class="link-arrow small">进入练习 ›</a></p>
+        <div class="road-head">
+          <h3>${esc(step.name)} <span class="pill ${pct >= 100 ? "ok" : "gray"}">${done}/${qs.length}</span>
+            <span class="road-toggle">▶</span></h3>
+          <p>${esc(step.desc)}</p>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+        </div>
+        <div class="road-modules">${modRows}</div>
       </div>`;
-    stepEl.querySelector(".link-arrow").onclick = () => {
-      // 进入该站第一个未掌握 topic
-      const target = step.topics.find(tp => QUESTIONS.some(q => q.topic === tp && !Store.records[q.id])) || step.topics[0];
-      nav("#/topic?name=" + encodeURIComponent(target));
+    stepEl.querySelector(".road-head").onclick = () => {
+      expanded.has(i) ? expanded.delete(i) : expanded.add(i);
+      renderRoadmap();
     };
+    stepEl.querySelectorAll(".module-row").forEach(row => {
+      row.onclick = () => nav("#/topic?name=" + encodeURIComponent(row.dataset.tp));
+    });
     card.appendChild(stepEl);
   });
 }

@@ -55,7 +55,14 @@ const QUESTIONS = [
     topic: "M1 基本门与三态",
     type: "judge",
     question: "手写：模块端口 a、b、sel_in（低有效），实现 y = a 与 b 的与，再经 sel_in 控制的三态输出（sel_in=0 时输出有效）。",
-    answer_ref: "参考：\nmodule tri_and(\n  input  wire a, b,\n  input  wire sel_in,   // 低有效\n  output wire y\n);\n  wire and_out = a & b;\n  assign y = !sel_in ? and_out : 1'bz;\nendmodule\n关键点：先内部 wire 算与，再套三态；低有效记得取反。",
+    starter: "// 低有效使能的三态与门\nmodule tri_and(\n  input  wire a, b,\n  input  wire sel_in,   // 低有效\n  output wire y\n);\n  wire and_out = a & b;\n  // TODO: 在下方补全三态输出（提示：sel_in=0 时输出有效，无效时输出 1'bz）\n\nendmodule",
+    checks: [
+      { desc: "声明了 y 的驱动语句（assign 或 always 块）", re: "assign\\s+y\\s*=|always\\s*@\\s*\\(\\s*\\*\\s*\\)" },
+      { desc: "自己写出与运算并驱动 y", re: "assign\\s+y\\s*=.*&|y\\s*(<=|=)\\s*and_out" },
+      { desc: "无效时输出高阻 1'bz", re: "1\\s*'{\\s*b\\s*[zZ]|'bz" },
+      { desc: "用低有效判断（!sel_in / ~sel_in / sel_in == 1'b0）", re: "!\\s*sel_in|~\\s*sel_in|sel_in\\s*==\\s*1\\s*'b0" }
+    ],
+    solution: "module tri_and(\n  input  wire a, b,\n  input  wire sel_in,\n  output wire y\n);\n  assign y = (!sel_in) ? (a & b) : 1'bz;\n  // 或 assign y = (!sel_in) ? a & b : 1'bz;\nendmodule",
     explanation: "三态门 = 组合结果 + 使能选择 1'bz。低有效使能判断 !sel_in。",
     tags: ["手写", "三态"]
   },
@@ -81,7 +88,13 @@ const QUESTIONS = [
     topic: "M2 多路选择器",
     type: "judge",
     question: "手写：分别用三种风格实现 2 选 1 MUX（a、b、sel → y）：① assign + 条件运算符；② always @(*) + if-else；③ always @(*) + case。",
-    answer_ref: "参考：\n// ① 连续赋值\nassign y = sel ? b : a;\n\n// ② if-else（reg 型 y）\nalways @(*) begin\n  if (sel) y = b;\n  else     y = a;\nend\n\n// ③ case（reg 型 y）\nalways @(*) begin\n  case (sel)\n    1'b1:    y = b;\n    default: y = a;\n  endcase\nend\n三种写法综合结果一致；②③ 中 y 须声明为 reg（或 SV logic）。",
+    starter: "// 2 选 1 MUX：sel=0 选 a，sel=1 选 b\nmodule mux2(\n  input  wire a, b, sel,\n  output wire y\n);\n  // TODO: 用 assign 或 always @(*) 实现选择（可写三种风格）\n\nendmodule",
+    checks: [
+      { desc: "写出 assign y = ... 的实现", re: "assign\\s+y\\s*=" },
+      { desc: "用到了条件选择（?: / if / case）", re: "\\?|if\\s*\\(|case\\s*\\(" },
+      { desc: "选择端 sel 参与 y 的决策", re: "sel" }
+    ],
+    solution: "// ① assign\ndefault clocking; endmodule\nmodule mux2_a(\n  input wire a, b, sel,\n  output wire y\n);\n  assign y = sel ? b : a;\nendmodule\n\n// ② if-else\nmodule mux2_b(\n  input wire a, b, sel,\n  output reg y\n);\n  always @(*)\n    if (sel) y = b;\n    else     y = a;\nendmodule\n\n// ③ case\nmodule mux2_c(\n  input wire a, b, sel,\n  output reg y\n);\n  always @(*) begin\n    case (sel)\n      1'b1:    y = b;\n      default: y = a;\n    endcase\n  end\nendmodule",
     explanation: "MUX 是组合逻辑的三种标准写法训练：assign 表达式、if-else、case。注意 ②③ 中 y 是 reg，但综合出来仍是组合逻辑。",
     tags: ["手写", "MUX"]
   },
@@ -121,7 +134,12 @@ const QUESTIONS = [
     topic: "M2 多路选择器",
     type: "judge",
     question: "手写：8 选 1 MUX，数据输入 d[7:0]，选择信号 sel[2:0]，要求用变量位选择一行 assign 实现（提示：d[sel]）。",
-    answer_ref: "参考：\nmodule mux8(\n  input  wire [7:0] d,\n  input  wire [2:0] sel,\n  output wire y\n);\n  assign y = d[sel];   // sel 作为索引，综合成 8:1 MUX\nendmodule\n等价展开：assign y = sel==0 ? d[0] : ... : d[7];",
+    starter: "// 8 选 1 MUX：一行 assign\nmodule mux8(\n  input  wire [7:0] d,\n  input  wire [2:0] sel,\n  output wire y\n);\n  // TODO: 用变量位选择实现（提示：d[sel]）\n\nendmodule",
+    checks: [
+      { desc: "用 assign 驱动 y", re: "assign\\s+y\\s*=" },
+      { desc: "用到了变量位选择 d[sel]", re: "d\\s*\\[\\s*sel\\s*\\]" }
+    ],
+    solution: "assign y = d[sel];",
     explanation: "变量索引 d[sel] 综合为多路选择器；比写 8 个分支的 case 简洁，综合结果相同。",
     tags: ["手写", "MUX"]
   },
@@ -132,7 +150,13 @@ const QUESTIONS = [
     topic: "M3 译码与优先编码",
     type: "judge",
     question: "手写：3-8 译码器，输入 sel[2:0]、使能 en（高有效），输出 onehot[7:0]（en 无效时输出全 0）。",
-    answer_ref: "参考：\nmodule dec3to8(\n  input  wire       en,\n  input  wire [2:0] sel,\n  output reg  [7:0] onehot\n);\n  always @(*) begin\n    onehot = 8'b0;              // 默认值，防 latch\n    if (en) onehot[sel] = 1'b1;\n  end\nendmodule",
+    starter: "// 3-8 译码器：en 无效输出全 0\nmodule dec3to8(\n  input  wire       en,\n  input  wire [2:0] sel,\n  output reg  [7:0] onehot\n);\n  always @(*) begin\n    // TODO: 先给默认值，再置位 onehot[sel]\n\n  end\nendmodule",
+    checks: [
+      { desc: "always 块里先给默认值 onehot = 8'b0（防 latch）", re: "onehot\\s*(<=|=)\\s*8\\s*'{\\s*b\\s*0" },
+      { desc: "判断了使能 en", re: "if\\s*\\(\\s*en|\\ben\\b" },
+      { desc: "用变量索引置位 onehot[sel]", re: "onehot\\s*\\[\\s*sel\\s*\\]\\s*(<=|=)\\s*1\\s*'b1" }
+    ],
+    solution: "always @(*) begin\n  onehot = 8'b0;            // 默认值\n  if (en) onehot[sel] = 1'b1;\nend",
     explanation: "先给默认值再覆盖，是最稳的组合写法；onehot[sel] 用变量位选，en 无效时保持全 0。",
     tags: ["手写", "译码器"]
   },
@@ -172,7 +196,13 @@ const QUESTIONS = [
     topic: "M3 译码与优先编码",
     type: "judge",
     question: "手写：4-2 优先编码器，输入 req[3:0]（1 有效，req[3] 优先级最高），输出 code[1:0] 和 valid（无请求时 valid=0）。用 casez 实现。",
-    answer_ref: "参考：\nmodule prio_enc4(\n  input  wire [3:0] req,\n  output reg  [1:0] code,\n  output reg        valid\n);\n  always @(*) begin\n    {valid, code} = 3'b0;       // 默认值\n    casez (req)\n      4'b1???: {valid, code} = 3'b1_11;\n      4'b01??: {valid, code} = 3'b1_10;\n      4'b001?: {valid, code} = 3'b1_01;\n      4'b0001: {valid, code} = 3'b1_00;\n      default: {valid, code} = 3'b0_00;\n    endcase\n  end\nendmodule\n注意位拼接默认值 + casez 不关心位写法。",
+    starter: "// 4-2 优先编码器：req[3] 优先级最高\nmodule prio_enc4(\n  input  wire [3:0] req,\n  output reg  [1:0] code,\n  output reg        valid\n);\n  always @(*) begin\n    // TODO: 用 casez 前缀匹配实现优先级\n\n  end\nendmodule",
+    checks: [
+      { desc: "使用了 casez 做前缀匹配（或 if-else 优先级链）", re: "casez\\s*\\(|if\\s*\\(" },
+      { desc: "用 ? 通配低位（如 4'b1???）或明确优先级顺序", re: "\\?|req\\s*\\[\\s*3\\s*\\]" },
+      { desc: "无请求时 valid = 0（默认值或分支覆盖）", re: "valid\\s*(<=|=)\\s*1\\s*'{\\s*b\\s*0|default" }
+    ],
+    solution: "always @(*) begin\n  code  = 2'b00;   // 默认\n  valid = 1'b0;\n  casez (req)\n    4'b1???: begin code = 2'd3; valid = 1'b1; end\n    4'b01??: begin code = 2'd2; valid = 1'b1; end\n    4'b001?: begin code = 2'd1; valid = 1'b1; end\n    4'b0001: begin code = 2'd0; valid = 1'b1; end\n  endcase\nend",
     explanation: "casez 前缀匹配天然表达优先级；default 分支保证组合逻辑无 latch。",
     tags: ["手写", "casez"]
   },
@@ -183,7 +213,14 @@ const QUESTIONS = [
     topic: "M4 加法与比较",
     type: "judge",
     question: "手写：全加器 fa(a, b, cin → sum, cout)，再用结构化方式例化两个 fa 组成 2 位行波加法器 add2(x[1:0], y[1:0] → s[1:0], co)。",
-    answer_ref: "参考：\nmodule fa(input wire a, b, cin,\n          output wire sum, cout);\n  assign sum  = a ^ b ^ cin;\n  assign cout = (a & b) | (cin & (a ^ b));\nendmodule\n\nmodule add2(input wire [1:0] x, y,\n            output wire [1:0] s,\n            output wire co);\n  wire c1;\n  fa u0(.a(x[0]), .b(y[0]), .cin(1'b0), .sum(s[0]), .cout(c1));\n  fa u1(.a(x[1]), .b(y[1]), .cin(c1),   .sum(s[1]), .cout(co));\nendmodule",
+    starter: "// 全加器 + 2 位行波加法器\nmodule fa(\n  input  wire a, b, cin,\n  output wire sum, cout\n);\n  // TODO: 写出 sum 与 cout 的表达式\n\nendmodule\n\nmodule add2(\n  input  wire [1:0] x, y,\n  output wire [1:0] s,\n  output wire co\n);\n  wire c1;\n  // TODO: 例化两个 fa，逐级传递进位\n\nendmodule",
+    checks: [
+      { desc: "sum = a ^ b ^ cin", re: "sum\\s*=|sum\\s*<=" },
+      { desc: "cout 含多数表决（(a&b)|(b&cin)|(a&cin) 或位拼接加法）", re: "&\\s*|\\{.*cout|\\+" },
+      { desc: "add2 里例化了两个 fa（fa u0 / fa u1 之类）", re: "fa\\s+\\w+\\s*\\(" },
+      { desc: "低位 cout 接高位 cin（端口连接含 .cin(c1) 或 .cout(c1)）", re: "\\.cin\\s*\\(\\s*c1\\s*\\)|\\.cout\\s*\\(\\s*c1\\s*\\)" }
+    ],
+    solution: "module fa(\n  input  wire a, b, cin,\n  output wire sum, cout\n);\n  assign sum  = a ^ b ^ cin;\n  assign cout = (a & b) | (b & cin) | (a & cin);\nendmodule\n\nmodule add2(\n  input  wire [1:0] x, y,\n  output wire [1:0] s,\n  output wire co\n);\n  wire c1;\n  fa u0 (.a(x[0]), .b(y[0]), .cin(1'b0), .sum(s[0]), .cout(c1));\n  fa u1 (.a(x[1]), .b(y[1]), .cin(c1),   .sum(s[1]), .cout(co));\nendmodule",
     explanation: "全加器 sum=a^b^cin，cout=ab+cin(a^b)；行波结构逐级传递进位，进位延迟随位宽线性增长——这是理解超前进位（CLA）的动机。",
     tags: ["手写", "加法器"]
   },
@@ -208,7 +245,13 @@ const QUESTIONS = [
     topic: "M4 加法与比较",
     type: "judge",
     question: "手写：4 位无符号比较器，输出 gt（a>b）、eq、lt，要求写出直接比较式，并附「减法借位」视角的等价实现思路。",
-    answer_ref: "参考：\nmodule cmp4(\n  input  wire [3:0] a, b,\n  output wire gt, eq, lt\n);\n  assign eq = (a == b);\n  assign gt = (a > b);\n  assign lt = (a < b);\nendmodule\n减法视角：wire [4:0] diff = {1'b0,a} - {1'b0,b};\neq = (diff[3:0]==0); gt = ~diff[4] & ~eq;（无符号减法无借位且非零即 gt）。",
+    starter: "// 4 位无符号比较器\nmodule cmp4(\n  input  wire [3:0] a, b,\n  output wire gt, eq, lt\n);\n  // TODO: gt/eq/lt 三个表达式；可再想想减法借位视角\n\nendmodule",
+    checks: [
+      { desc: "三个输出都有 assign 驱动", re: "assign\\s+gt|assign\\s+eq|assign\\s+lt" },
+      { desc: "eq 用全等比较（a == b）", re: "a\\s*==\\s*b" },
+      { desc: "gt/lt 用大小比较（> / <）", re: "a\\s*>\\s*b|a\\s*<\\s*b" }
+    ],
+    solution: "assign eq = (a == b);\nassign gt = (a > b);\nassign lt = (a < b);  // 也可 lt = ~gt & ~eq",
     explanation: "直接关系运算符即可综合出比较器；减法视角帮助理解借位与 gt/lt 的对应关系。",
     tags: ["手写", "比较器"]
   },
@@ -259,8 +302,13 @@ const QUESTIONS = [
     topic: "M5 组合陷阱",
     type: "judge",
     question: "找错并改正：下面的组合逻辑想实现「en 时 y=b 否则 y=a」，当前会产生 latch，请给出两种不产生 latch 的改法。",
-    code: "always @(*) begin\n  if (en)\n    y = b;\nend",
+    starter: "// 补全：en 时 y=b，否则 y=a，不能产生 latch\nmodule mux_fix(\n  input  wire en, a, b,\n  output reg  y\n);\n  always @(*) begin\n    // TODO: 两种改法任选（补 else / 默认值）\n\n  end\nendmodule",
+    checks: [
+      { desc: "if-else 两分支齐全（else 分支存在）", re: "\\belse\\b" },
+      { desc: "en 参与 if 判断", re: "if\\s*\\(\\s*[!~]?\\s*en\\s*\\)" }
+    ],
     answer_ref: "参考：\n// 写法1 补 else\nalways @(*) begin\n  if (en) y = b;\n  else    y = a;\nend\n\n// 写法2 默认值\nalways @(*) begin\n  y = a;          // 默认\n  if (en) y = b;\nend",
+    solution: "always @(*) begin\n  if (en) y = b;\n  else    y = a;\nend\n// 或：先给默认值 y = a; 再 if (en) y = b;",
     explanation: "latch 成因 = 组合块中某条路径无赋值。补全分支或先赋默认值即可。",
     tags: ["手写", "latch"]
   },
@@ -287,7 +335,13 @@ const QUESTIONS = [
     topic: "M6 触发器",
     type: "judge",
     question: "手写：带低有效异步复位、高有效同步使能 en 的 D 触发器（d → q），en 无效时保持。",
-    answer_ref: "参考：\nmodule dff_en(\n  input  wire clk, rst_n, en, d,\n  output reg  q\n);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n)  q <= 1'b0;\n    else if (en) q <= d;   // 使能无效 → 保持\n  end\nendmodule\n使能的本质：不满足条件就不赋值，寄存器保持原值（综合成 MUX+DFF）。",
+    starter: "// 带异步复位 + 同步使能的 D 触发器\nmodule dff_en(\n  input  wire clk, rst_n, en, d,\n  output reg  q\n);\n  // TODO: 敏感列表写对，en 无效时保持\n\nendmodule",
+    checks: [
+      { desc: "敏感列表含 posedge clk 和 rst_n（异步复位）", re: "posedge\\s+clk.*rst_n|posedge\\s+rst_n" },
+      { desc: "复位用非阻塞赋值 q <= 0", re: "q\\s*<=\\s*1\\s*'{\\s*b\\s*0" },
+      { desc: "en 无效时保持（else 分支不赋值 / if(en) 包住赋值）", re: "if\\s*\\(\\s*en\\s*\\)" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n) q <= 1'b0;\n  else if (en) q <= d;\n  // en=0 不赋值 → 保持\nend",
     explanation: "使能 = 分支条件不满足时不更新寄存器，综合器自动加反馈 MUX。",
     tags: ["手写", "触发器"]
   },
@@ -345,7 +399,13 @@ const QUESTIONS = [
     topic: "M7 边沿检测",
     type: "judge",
     question: "手写：对输入 sig 做两级同步并输出 pos_pulse（sig 上升沿时的单周期脉冲）。",
-    answer_ref: "参考：\nmodule edge_det(\n  input  wire clk, rst_n, sig,\n  output wire pos_pulse\n);\n  reg sig_q1, sig_q2;\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) {sig_q2, sig_q1} <= 2'b00;\n    else        {sig_q2, sig_q1} <= {sig_q1, sig};\n  end\n  assign pos_pulse = sig_q1 & ~sig_q2;\nendmodule",
+    starter: "// 两级同步 + 上升沿检测\nmodule edge_det(\n  input  wire clk, rst_n, sig,\n  output wire pos_pulse\n);\n  reg sig_q1, sig_q2;\n  // TODO: 打两拍，输出 pos_pulse = 本拍高 & 上拍低\n\nendmodule",
+    checks: [
+      { desc: "always @(posedge clk) 里连续打两拍（q1 <= sig; q2 <= q1）", re: "sig_q1\\s*<=" },
+      { desc: "第二拍来自第一拍（sig_q2 <= sig_q1）", re: "sig_q2\\s*<=\\s*sig_q1" },
+      { desc: "pos_pulse = sig_q2 & ~sig_q1（本拍高上拍低）", re: "sig_q2\\s*&\\s*~\\s*sig_q1|sig_q2\\s*&\\s*!\\s*sig_q1" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n) begin\n    sig_q1 <= 1'b0;\n    sig_q2 <= 1'b0;\n  end else begin\n    sig_q1 <= sig;\n    sig_q2 <= sig_q1;\n  end\nend\nassign pos_pulse = sig_q2 & ~sig_q1;",
     explanation: "两级 FF 既完成同步又提供历史值；pos_pulse 只在 sig 由 0→1 后的那一拍为高。",
     tags: ["手写", "边沿检测"]
   },
@@ -371,7 +431,13 @@ const QUESTIONS = [
     topic: "M8 计数器",
     type: "judge",
     question: "手写：带异步复位、使能的 8 位向上计数器，计数到 200 时产生单周期脉冲 tick，到 200 后回 0（模 201）。",
-    answer_ref: "参考：\nmodule cnt200(\n  input  wire clk, rst_n, en,\n  output reg  [7:0] cnt,\n  output wire tick\n);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n)  cnt <= 8'd0;\n    else if (en)\n      cnt <= (cnt == 8'd200) ? 8'd0 : cnt + 8'd1;\n  end\n  assign tick = (cnt == 8'd200);\nendmodule\n200 < 256，8 位够用；tick 为组合比较输出，若要求严格单拍无毛刺可再打一拍。",
+    starter: "// 模 201 计数器：0..200 循环，计到 200 出 tick\nmodule cnt200(\n  input  wire clk, rst_n, en,\n  output reg  [7:0] cnt,\n  output wire tick\n);\n  // TODO: 复位、计数、到 200 回 0，tick 用比较生成\n\nendmodule",
+    checks: [
+      { desc: "复位 cnt <= 0（同步或异步）", re: "cnt\\s*<=\\s*\\{?8|cnt\\s*<=\\s*0" },
+      { desc: "计到 200 归零（== 200 或 >= 200）", re: "==\\s*200|>=\\s*200" },
+      { desc: "tick 用组合比较生成（assign tick = ...）", re: "assign\\s+tick" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n)      cnt <= 8'd0;\n  else if (en)     cnt <= (cnt == 8'd200) ? 8'd0 : cnt + 1'b1;\nend\nassign tick = (cnt == 8'd200);",
     explanation: "模 N 计数器三要素：复位值、终点比较、回绕赋值。tick 用组合比较生成跟随 cnt。",
     tags: ["手写", "计数器"]
   },
@@ -410,7 +476,13 @@ const QUESTIONS = [
     topic: "M8 计数器",
     type: "judge",
     question: "手写：可预置的 4 位加减计数器：up_down=1 加、0 减，load 有效时下一拍载入 d[3:0]，带异步复位。",
-    answer_ref: "参考：\nmodule cnt_ud(\n  input  wire clk, rst_n, load, up_down,\n  input  wire [3:0] d,\n  output reg  [3:0] q\n);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n)       q <= 4'd0;\n    else if (load)    q <= d;\n    else if (up_down) q <= q + 4'd1;\n    else              q <= q - 4'd1;\n  end\nendmodule\n优先级：复位 > load > 计数。",
+    starter: "// 可预置 4 位加减计数器：load > 计数\nmodule cnt_ud(\n  input  wire clk, rst_n, load, up_down,\n  input  wire [3:0] d,\n  output reg  [3:0] q\n);\n  // TODO: 复位 > load > 加减选择\n\nendmodule",
+    checks: [
+      { desc: "if-else 优先级：先复位、再 load", re: "if\\s*\\(\\s*[!~]?\\s*rst" },
+      { desc: "load 分支 q <= d", re: "q\\s*<=\\s*d" },
+      { desc: "up_down 选择 +1 / -1（q + 1 / q - 1）", re: "\\+\\s*1|-\\s*1" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n)       q <= 4'd0;\n  else if (load)    q <= d;\n  else if (up_down) q <= q + 1'b1;\n  else              q <= q - 1'b1;\nend",
     explanation: "计数器 = 复位 + 置数 + 加减选择的三级优先 if-else；load 优先于计数方向。",
     tags: ["手写", "计数器"]
   },
@@ -421,7 +493,13 @@ const QUESTIONS = [
     topic: "M9 分频器",
     type: "judge",
     question: "手写：偶数分频——把 clk 8 分频，输出占空比 50% 的 clk_div8（分频输出用寄存器生成，不做门控时钟）。",
-    answer_ref: "参考：\nmodule div8(\n  input  wire clk, rst_n,\n  output reg  clk_div8\n);\n  reg [2:0] cnt;\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      cnt <= 3'd0; clk_div8 <= 1'b0;\n    end else begin\n      cnt <= cnt + 3'd1;\n      if (cnt == 3'd3) clk_div8 <= ~clk_div8; // 每 4 拍翻转一次\n    end\n  end\nendmodule\nN=8：计到 N/2-1=3 翻转，输出周期 = 8 个 clk。",
+    starter: "// 8 分频 50% 占空比\nmodule div8(\n  input  wire clk, rst_n,\n  output reg  clk_div8\n);\n  reg [2:0] cnt;\n  // TODO: 计到 3 翻转输出，周期 = 8 个 clk\n\nendmodule",
+    checks: [
+      { desc: "复位时计数器与输出清零", re: "cnt\\s*<=\\s*0" },
+      { desc: "计到 3 归零并翻转 clk_div8（~clk_div8）", re: "3|cnt\\s*<=\\s*0" },
+      { desc: "翻转用非阻塞赋值 clk_div8 <= ~clk_div8", re: "clk_div8\\s*<=\\s*~" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n) begin\n    cnt      <= 3'd0;\n    clk_div8 <= 1'b0;\n  end else if (cnt == 3'd3) begin\n    cnt      <= 3'd0;\n    clk_div8 <= ~clk_div8;   // 4 个 clk 翻一次 → 周期 8\n  end else begin\n    cnt <= cnt + 1'b1;\n  end\nend",
     explanation: "偶数 N 分频：计数到 N/2-1 翻转输出。分频输出是普通寄存器信号，下游建议作时钟使能使用。",
     tags: ["手写", "分频"]
   },
@@ -460,7 +538,13 @@ const QUESTIONS = [
     topic: "M9 分频器",
     type: "judge",
     question: "手写：3 分频 50% 占空比输出（提示：上升沿计数产生 div_p，下降沿产生错开半周期的 div_n，clk_div3 = div_p | div_n）。",
-    answer_ref: "参考：\nmodule div3(\n  input  wire clk, rst_n,\n  output wire clk_div3\n);\n  reg [1:0] cnt_p;\n  reg div_p, div_n;\n  // 上升沿：计数 0,1 为高（占 2/3 周期）\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin cnt_p <= 0; div_p <= 0; end\n    else begin\n      cnt_p <= (cnt_p == 2'd2) ? 2'd0 : cnt_p + 2'd1;\n      div_p <= (cnt_p == 2'd0);\n    end\n  end\n  // 下降沿重采样，错开半周期\n  always @(negedge clk or negedge rst_n) begin\n    if (!rst_n) div_n <= 0;\n    else        div_n <= div_p;   // 对 div_p 打一拍（negedge 域）\n  end\n  assign clk_div3 = div_p | div_n;\nendmodule",
+    starter: "// 3 分频 50% 占空比\nmodule div3(\n  input  wire clk, rst_n,\n  output wire clk_div3\n);\n  reg [1:0] cnt_p;\n  reg div_p, div_n;\n  // TODO: 上升沿计数 div_p，下降沿错开 div_n，取或\n\nendmodule",
+    checks: [
+      { desc: "上升沿与下降沿各有一个 always 块", re: "posedge|negedge" },
+      { desc: "下降沿块用了相同的计数逻辑（cnt_p 或独立计数）", re: "negedge" },
+      { desc: "输出取或（div_p | div_n）", re: "div_p\\s*\\|\\s*div_n" }
+    ],
+    solution: "// 上升沿计数\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n) begin\n    cnt_p <= 2'd0;\n    div_p <= 1'b0;\n  end else if (cnt_p == 2'd1) begin\n    cnt_p <= 2'd0;\n    div_p <= ~div_p;\n  end else begin\n    cnt_p <= cnt_p + 1'b1;\n  end\nend\n// 下降沿错开半周期\nalways @(negedge clk or negedge rst_n) begin\n  if (!rst_n)       div_n <= 1'b0;\n  else if (cnt_p == 2'd1) div_n <= ~div_n;\nend\nassign clk_div3 = div_p | div_n;",
     explanation: "上升沿方波占 2/3、下降沿延迟版占 2/3 但错开半周期，取或后高 1.5 拍低 1.5 拍，即 50% 占空比的 3 分频。",
     tags: ["手写", "奇数分频"]
   },
@@ -486,7 +570,13 @@ const QUESTIONS = [
     topic: "C1 计数器",
     type: "judge",
     question: "手写：分频链——50MHz 时钟，输出 dsec_tick（每 0.1 秒一个单周期脉冲）和 sec_tick（每秒一个脉冲）。写出计数链。",
-    answer_ref: "参考：\n// 50_000_000 需要 26 位（2^26≈67M）\nreg [25:0] cnt_main;\nreg [3:0]  cnt_sub;    // 0.1s 内数 10 次\nwire tick_100ms;\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n) cnt_main <= 0;\n  else cnt_main <= (cnt_main == 26'd4_999_999) ? 0 : cnt_main + 1'b1;\nend\nassign tick_100ms = (cnt_main == 26'd4_999_999);\n// 0.1s 计 10 次 → 1s\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n) cnt_sub <= 0;\n  else if (tick_100ms)\n    cnt_sub <= (cnt_sub == 4'd9) ? 0 : cnt_sub + 1'b1;\nend\nassign dsec_tick = tick_100ms;\nassign sec_tick  = tick_100ms && (cnt_sub == 4'd9);",
+    starter: "// 分频链：50MHz → 0.1s 脉冲 → 1s 脉冲\nmodule tick_gen(\n  input  wire clk, rst_n,\n  output wire dsec_tick,   // 每 0.1s 一个单周期脉冲\n  output wire sec_tick     // 每 1s 一个单周期脉冲\n);\n  reg [25:0] cnt_main;\n  reg [3:0]  cnt_sub;\n  // TODO: 50_000_000-1 主计数，0.1s 内数 10 次\n\nendmodule",
+    checks: [
+      { desc: "always 块里写出主计数终值比较", re: "cnt_main\\s*(==|>=)\\s*\\d" },
+      { desc: "cnt_sub 有非阻塞赋值", re: "cnt_sub\\s*<=" },
+      { desc: "dsec_tick / sec_tick 用组合比较生成", re: "assign\\s+dsec_tick|assign\\s+sec_tick" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n) cnt_main <= 26'd0;\n  else if (cnt_main == 26'd49_999_999) cnt_main <= 26'd0;\n  else cnt_main <= cnt_main + 1'b1;\nend\n\n// 0.1s 边界：cnt_main 数满 4_999_999\nwire dsec_edge = (cnt_main == 26'd4_999_999);\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n)              cnt_sub <= 4'd0;\n  else if (dsec_edge)      cnt_sub <= (cnt_sub == 4'd9) ? 4'd0 : cnt_sub + 1'b1;\nend\n\nassign dsec_tick = dsec_edge;\nassign sec_tick  = dsec_edge & (cnt_sub == 4'd9);",
     explanation: "大分频比拆成计数链：主计数器产生 0.1s 基准脉冲，再数 10 次产生 1s。体现「分频 = 计数 + 脉冲」的复用思想。",
     tags: ["手写", "计数器", "分频链"]
   },
@@ -507,7 +597,13 @@ const QUESTIONS = [
     topic: "C2 序列检测",
     type: "judge",
     question: "手写：三段式状态机实现 1011 序列检测（可重叠），输入 din、clk、rst_n，输出 hit（检测到当拍为 1）。",
-    answer_ref: "参考：\nlocalparam S0=2'd0, S1=2'd1, S10=2'd2, S101=2'd3;\nreg [1:0] state, nstate;\n// 1) 状态寄存器\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) state <= S0;\n  else        state <= nstate;\n// 2) 次态组合\nalways @(*) begin\n  nstate = S0;               // 默认\n  case (state)\n    S0:   nstate = din ? S1   : S0;\n    S1:   nstate = din ? S1   : S10;\n    S10:  nstate = din ? S101 : S0;\n    S101: nstate = din ? S1   : S10;  // 命中后尾 1 复用\n  endcase\nend\n// 3) 输出（Mealy）\nassign hit = (state == S101) && din;",
+    starter: "// 三段式状态机：检测 1011（可重叠）\nmodule seq_det(\n  input  wire clk, rst_n, din,\n  output wire hit\n);\n  localparam S0=2'd0, S1=2'd1, S10=2'd2, S101=2'd3;\n  reg [1:0] state, nstate;\n  // 1) 状态寄存器\n  // TODO: always @(posedge clk ...) state <= nstate;\n  // 2) 组合次态\n  // TODO: 默认值 + case\n  // 3) 输出\n  // TODO: assign hit = ...\n\nendmodule",
+    checks: [
+      { desc: "状态寄存器：always 块内时序赋值 state <= nstate（非注释行）", re: "^[^/]*state\\s*<=\\s*nstate" },
+      { desc: "次态逻辑有默认值 + case（防 latch）", re: "nstate\\s*=\\s*S0|default" },
+      { desc: "hit 用组合 assign（比较状态）而非时序输出", re: "assign\\s+hit" }
+    ],
+    solution: "// 1) 状态寄存器\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) state <= S0;\n  else        state <= nstate;\n\n// 2) 组合次态\nalways @(*) begin\n  nstate = S0;                 // 默认\n  case (state)\n    S0:   nstate = din ? S1   : S0;\n    S1:   nstate = din ? S1   : S10;\n    S10:  nstate = din ? S101 : S0;\n    S101: nstate = din ? S1   : S10;  // 尾部 1 复用 → 可重叠\n  endcase\nend\n\n// 3) 输出\nassign hit = (state == S101) & din;",
     explanation: "三段式 = 时序状态寄存 + 组合次态 + 输出逻辑，分支全覆盖无 latch。S101 收到 1 命中，尾部 1 复用回 S1（可重叠）。",
     tags: ["手写", "状态机"]
   },
@@ -531,7 +627,13 @@ const QUESTIONS = [
     topic: "C2 序列检测",
     type: "judge",
     question: "手写：序列生成器——循环输出序列 1,0,1,1（每拍一位，无限循环），用计数器+查找表或循环移位任一实现。",
-    answer_ref: "参考：\n// 法1：计数器 + 查找表\nreg [1:0] idx;\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) idx <= 0;\n  else        idx <= idx + 2'd1;   // 自然回绕 0..3\nassign dout = (idx == 2'd0) ? 1'b1 :\n              (idx == 2'd1) ? 1'b0 : 1'b1;  // idx=2,3 → 1,1\n\n// 法2：4 位循环移位\nreg [3:0] pat;\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) pat <= 4'b1011;\n  else        pat <= {pat[2:0], pat[3]};\nassign dout = pat[3];",
+    starter: "// 序列生成器：循环输出 1,0,1,1\nmodule seq_gen(\n  input  wire clk, rst_n,\n  output wire dout\n);\n  // TODO: 计数器+查找表 或 循环移位，任选\n\nendmodule",
+    checks: [
+      { desc: "有一个 2 位计数器（或 4 位移位寄存器）", re: "\\[\\s*1\\s*:\\s*0\\s*\\]|\\[\\s*3\\s*:\\s*0\\s*\\]" },
+      { desc: "计数到 3 归零（或移位反馈）", re: "==\\s*3|<<|>>|\\{" },
+      { desc: "dout 用组合 assign 输出", re: "assign\\s+dout" }
+    ],
+    solution: "// 计数器 + 查找表\nreg [1:0] cnt;\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n)   cnt <= 2'd0;\n  else          cnt <= (cnt == 2'd3) ? 2'd0 : cnt + 1'b1;\nend\nassign dout = (cnt == 2'd0) | (cnt == 2'd2) | (cnt == 2'd3);\n// 即 1,0,1,1 循环",
     explanation: "生成 = 计数器寻址查找表 或 环形移位。与检测互为镜像：检测按输入建状态，生成按状态驱动输出。",
     tags: ["手写", "序列生成"]
   },
@@ -557,7 +659,13 @@ const QUESTIONS = [
     topic: "C3 去毛刺",
     type: "judge",
     question: "手写：对异步输入 din 去毛刺，先两级 FF 同步，再「连续 4 拍与当前输出不同才翻转」，输出 db_out。",
-    answer_ref: "参考：\nmodule debounce(\n  input  wire clk, rst_n, din,\n  output reg  db_out\n);\n  reg din_q1, din_q2;\n  reg [1:0] cnt;\n  // 两级同步\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) {din_q2, din_q1} <= 2'b00;\n    else        {din_q2, din_q1} <= {din_q1, din};\n  end\n  // N 拍一致\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin cnt <= 0; db_out <= 0; end\n    else if (din_q2 == db_out) cnt <= 0;\n    else if (cnt == 2'd3) begin\n      db_out <= din_q2;   // 连续 4 拍不同才翻转\n      cnt <= 0;\n    end\n    else cnt <= cnt + 2'd1;\n  end\nendmodule",
+    starter: "// 去毛刺：两级同步 + 4 拍一致才翻转\nmodule debounce(\n  input  wire clk, rst_n, din,\n  output reg  db_out\n);\n  reg din_q1, din_q2;\n  reg [1:0] cnt;\n  // TODO: 先同步，再 N 拍一致\n\nendmodule",
+    checks: [
+      { desc: "两级同步打拍（din_q1 <= din; din_q2 <= din_q1）", re: "din_q1\\s*<=\\s*din" },
+      { desc: "计数器在电平稳定时累加、变化时清零", re: "cnt\\s*<=\\s*cnt\\s*\\+" },
+      { desc: "计满后 db_out 翻转 / 跟随（非阻塞赋值）", re: "db_out\\s*<=" }
+    ],
+    solution: "always @(posedge clk or negedge rst_n) begin\n  if (!rst_n) begin\n    din_q1 <= 1'b0;\n    din_q2 <= 1'b0;\n    cnt    <= 2'd0;\n    db_out <= 1'b0;\n  end else begin\n    din_q1 <= din;\n    din_q2 <= din_q1;\n    if (din_q2 == db_out) begin\n      cnt <= 2'd0;               // 无变化：计数清零\n    end else if (&cnt) begin     // 连续 4 拍不一致\n      db_out <= din_q2;\n      cnt    <= 2'd0;\n    end else begin\n      cnt <= cnt + 1'b1;\n    end\n  end\nend",
     explanation: "结构 = 两级同步器（防亚稳态）+ N 拍一致（防毛刺）。注意先同步再去毛刺，顺序不能反。",
     tags: ["手写", "去毛刺"]
   },
@@ -628,7 +736,13 @@ const QUESTIONS = [
     topic: "C4 跨时钟域",
     type: "judge",
     question: "手写：toggle 同步器——源域每收到 pulse_a 把 tgl 翻转一次，目的域两级同步 + 边沿检测还原脉冲 pulse_b。",
-    answer_ref: "参考：\n// 源域\nreg tgl;\nalways @(posedge clk_a or negedge rst_n)\n  if (!rst_n)       tgl <= 1'b0;\n  else if (pulse_a) tgl <= ~tgl;\n\n// 目的域\nreg tgl_q1, tgl_q2, tgl_q3;\nalways @(posedge clk_b or negedge rst_n) begin\n  if (!rst_n) {tgl_q3, tgl_q2, tgl_q1} <= 3'b0;\n  else        {tgl_q3, tgl_q2, tgl_q1} <= {tgl_q2, tgl_q1, tgl};\nend\nassign pulse_b = tgl_q2 ^ tgl_q3;   // 当前值与上一拍异或 → 单拍脉冲",
+    starter: "// toggle 同步器：源域翻转，目的域同步+异或还原脉冲\nmodule toggle_sync(\n  input  wire clk_a, clk_b, rst_n, pulse_a,\n  output wire pulse_b\n);\n  reg tgl;\n  // TODO: 源域翻转 tgl；目的域打两拍后异或还原\n\nendmodule",
+    checks: [
+      { desc: "源域 posedge clk_a 里 tgl 翻转（tgl <= ~tgl）", re: "tgl\\s*<=\\s*~" },
+      { desc: "目的域两级同步（如 tgl_b1 <= tgl; tgl_b2 <= tgl_b1）", re: "tgl_b1\\s*<=" },
+      { desc: "pulse_b = 第二拍 ^ 第三拍（异或还原）", re: "\\^" }
+    ],
+    solution: "// 源域：脉冲转电平翻转\nalways @(posedge clk_a or negedge rst_n)\n  if (!rst_n) tgl <= 1'b0;\n  else if (pulse_a) tgl <= ~tgl;\n\n// 目的域：两级同步 + 异或还原\nreg tgl_b1, tgl_b2, tgl_b3;\nalways @(posedge clk_b or negedge rst_n) begin\n  if (!rst_n) begin\n    tgl_b1 <= 1'b0;\n    tgl_b2 <= 1'b0;\n    tgl_b3 <= 1'b0;\n  end else begin\n    tgl_b1 <= tgl;\n    tgl_b2 <= tgl_b1;\n    tgl_b3 <= tgl_b2;\n  end\nend\nassign pulse_b = tgl_b2 ^ tgl_b3;",
     explanation: "toggle 把「脉冲」转成「电平翻转」，电平同步不丢事件；目的域用异或当前/历史值还原单拍脉冲。适合低频事件同步，占两拍延迟。",
     tags: ["手写", "CDC"]
   },
@@ -654,7 +768,14 @@ const QUESTIONS = [
     topic: "C5 同步FIFO",
     type: "judge",
     question: "手写：深度 8、数据宽度 8 的同步 FIFO：端口 clk/rst_n/wen/ren/wdata/rdata/empty/full，用 count 法判空满。",
-    answer_ref: "参考：\nmodule sync_fifo #(parameter DEPTH=8, DW=8)(\n  input  wire clk, rst_n, wen, ren,\n  input  wire [DW-1:0] wdata,\n  output reg  [DW-1:0] rdata,\n  output wire empty, full\n);\n  reg [DW-1:0] mem [0:DEPTH-1];\n  reg [2:0] wptr, rptr;\n  reg [3:0] count;                 // 深度 8 需 4 位\n  assign empty = (count == 4'd0);\n  assign full  = (count == 4'd8);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      wptr <= 0; rptr <= 0; count <= 0; rdata <= 0;\n    end else begin\n      if (wen && !full) begin mem[wptr] <= wdata; wptr <= wptr + 1'b1; end\n      if (ren && !empty) begin rdata <= mem[rptr]; rptr <= rptr + 1'b1; end\n      case ({wen && !full, ren && !empty})\n        2'b10:   count <= count + 1'b1;\n        2'b01:   count <= count - 1'b1;\n        default: count <= count;   // 同拍读写不变\n      endcase\n    end\n  end\nendmodule",
+    starter: "// 深度 8、位宽 8 的同步 FIFO（count 法判空满）\nmodule sync_fifo(\n  input  wire clk, rst_n, wen, ren,\n  input  wire [7:0] wdata,\n  output reg  [7:0] rdata,\n  output wire empty, full\n);\n  // TODO: mem + 双指针 + count 维护（同拍读写 count 不变）\n\nendmodule",
+    checks: [
+      { desc: "定义了 8x8 存储（reg [7:0] mem [0:7]）", re: "\\[\\s*7\\s*:\\s*0\\s*\\]\\s*mem\\s*\\[\\s*0\\s*:\\s*7\\s*\\]" },
+      { desc: "读写指针各 3 位且独立累加", re: "\\[\\s*2\\s*:\\s*0\\s*\\]" },
+      { desc: "count 维护：写加、读减、同拍读写不变", re: "count" },
+      { desc: "empty/full 用比较生成（count == 0 / count == 8）", re: "assign\\s+empty|assign\\s+full" }
+    ],
+    solution: "reg [7:0] mem [0:7];\nreg [2:0] wptr, rptr;\nreg [3:0] count;\n\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n) begin\n    wptr <= 3'd0; rptr <= 3'd0; count <= 4'd0;\n    rdata <= 8'd0;\n  end else begin\n    if (wen && !full) begin\n      mem[wptr] <= wdata;\n      wptr <= wptr + 1'b1;\n    end\n    if (ren && !empty) begin\n      rdata <= mem[rptr];\n      rptr <= rptr + 1'b1;\n    end\n    case ({wen && !full, ren && !empty})\n      2'b10: count <= count + 1'b1;\n      2'b01: count <= count - 1'b1;\n      default: count <= count;   // 同拍读写不变\n    endcase\n  end\nend\nassign empty = (count == 4'd0);\nassign full  = (count == 4'd8);",
     explanation: "三块拼图：存储阵列（mem+双指针）、空满比较、count 维护。写读同拍 count 不变是计数器法的关键细节。",
     tags: ["手写", "FIFO"]
   },
@@ -705,7 +826,13 @@ const QUESTIONS = [
     topic: "C6 异步FIFO",
     type: "judge",
     question: "手写：二进制转格雷码的 assign 表达式，并用一句话说明为什么格雷码适合指针同步。",
-    answer_ref: "参考：\nassign gray = bin ^ (bin >> 1);\n还原：bin[i] = bin[i+1] ^ gray[i]（从最高位迭代）。\n适合同步的原因：相邻数值的格雷码仅 1 位不同，跨时钟采样即使亚稳/偏斜，结果也只会是「相邻值之一」，FIFO 空满判断在保守方向上不会错。",
+    starter: "// 二进制转格雷码\nmodule bin2gray #(\n  parameter N = 4\n)(\n  input  wire [N-1:0] bin,\n  output wire [N-1:0] gray\n);\n  // TODO: 一行 assign；想想为什么适合指针同步\n\nendmodule",
+    checks: [
+      { desc: "用异或实现：gray = bin ^ (bin >> 1)", re: "\\^" },
+      { desc: "右移一位参与异或（bin >> 1）", re: ">>\\s*1" },
+      { desc: "参数化写法（用 N 而非写死 4 位）", re: "N\\s*-\\s*1" }
+    ],
+    solution: "assign gray = bin ^ (bin >> 1);\n// 相邻二进制数只差 1 位 → 格雷码适合异步指针同步（FIFO）",
     explanation: "g = b ^ (b>>1) 是转换公式；核心性质是相邻码距为 1 → 采样误差受限于相邻值，方向保守安全。",
     tags: ["手写", "格雷码"]
   },

@@ -62,7 +62,13 @@ const Store = (() => {
     },
 
     /* 每日打卡 */
-    ensureDaily(dateStr, ids) {
+    ensureDaily(dateStr, ids, allIds) {
+      const d = state.daily[dateStr];
+      // 换题库/数据更新后，旧 daily 里可能存着已删除的题目 id，作废重抽
+      // 注意：ids 是当日随机抽样，不能用来校验；要用全题库 id（allIds）
+      if (d && Array.isArray(allIds) && (!Array.isArray(d.ids) || d.ids.some(id => !allIds.includes(id)))) {
+        delete state.daily[dateStr];
+      }
       if (!state.daily[dateStr]) {
         state.daily[dateStr] = { ids, done: 0, total: ids.length };
         save();
