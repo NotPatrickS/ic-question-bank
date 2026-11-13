@@ -9,7 +9,8 @@ const Store = (() => {
       marks: {},       // id -> "review" | "unknown"  (需复习 / 暂不会)
       daily: {},       // "YYYY-MM-DD" -> { ids: [...], done: n, total }
       streak: { last: "", count: 0 },
-      current: {}      // setId -> { order: [ids], pos, seed } 继续上次学习
+      current: {},     // setId -> { order: [ids], pos, seed } 继续上次学习
+      updated_at: ""   // 云同步时间戳：持久化保存，仅在 save() 时刷新
     };
   }
 
@@ -18,7 +19,11 @@ const Store = (() => {
       return Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY) || "{}"));
     } catch { return defaults(); }
   }
-  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+  function save() {
+    state.updated_at = new Date().toISOString();
+    localStorage.setItem(KEY, JSON.stringify(state));
+    if (typeof Cloud !== "undefined") Cloud.schedulePush();  // 已登录时自动上传
+  }
 
   return {
     get records() { return state.records; },
@@ -78,6 +83,20 @@ const Store = (() => {
         else if (s.last !== today) { s.count = 1; s.last = today; }
       }
       save();
+    },
+
+    /* ====== 云同步支持 ====== */
+    snapshot() {
+      // updated_at 已是持久化字段，restore 后不会被刷新，除非本机有新操作
+      return JSON.parse(JSON.stringify(state));
+    },
+    /* 云端恢复到本机（进度、标记、打卡、断点全部生效） */
+    restore(data) {
+      const base = defaults();
+      const merged = Object.assign(base, data || {});
+      state = merged;
+      // 恢复时直接写 localStorage，不刷新 updated_at、不触发上传
+      localStorage.setItem(KEY, JSON.stringify(state));
     },
 
     reset() { state = defaults(); save(); }

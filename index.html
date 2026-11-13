@@ -19,6 +19,8 @@
   <form class="searchbox" id="searchForm">
     <input id="searchInput" type="text" placeholder="搜索题目、标签" autocomplete="off">
   </form>
+  <button class="account-btn" id="accountBtn">登录</button>
+  <span class="sync-status" id="syncStatus"></span>
 </header>
 
 <main id="app"></main>
@@ -27,7 +29,20 @@
 <footer class="legal">IC 题库 · 纯静态个人项目</footer>
 
 <script src="js/data.js"></script>
-<script src="js/store.js"></script>
+<script src="js/vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js?v=3"></script>
+<script src="js/cloud.js"></script>
 <script src="js/app.js"></script>
+<script>
+  // 顶栏账号按钮 + 启动时恢复会话
+  document.getElementById("accountBtn").addEventListener("click", () => Cloud.openAuthModal());
+  Cloud.init().then(u => {
+    if (u) {
+      // 会话恢复：以云端为准拉取一次（避免多设备时间差导致旧数据覆盖新数据）
+      Cloud.pullOnBoot().then(() => { if (location.hash) router(); });
+    }
+  });
+</script>
 </body>
 </html>
