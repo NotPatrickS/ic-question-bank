@@ -1,79 +1,314 @@
-/* ====== 题库数据（示例种子题，可自行增删） ======
- * 结构说明：
- * { id, topic, question, options:[...], answer:正确下标, explanation, code(可选代码段), tags:[...] }
- * type: "choice" 单选 | "judge" 判断（简答题干+自评）
- * 添加新题：在 QUESTIONS 数组里追加即可，代码无需改动。
- */
+/* ============================================================
+ * 题库：以「编码能力」为主线的 Verilog 学习路径
+ * 阶段0 组合逻辑 M1-M5 → 阶段1 时序原语 M6-M9 → 阶段2 编码六件套
+ * 每题：id / topic / type(choice|judge) / question / options / answer
+ *      / explanation / answer_ref(judge 手写题参考答案) / code(可选，会高亮)
+ * 加题改这里，app.js 不用动。
+ * ============================================================ */
+
 const QUESTIONS = [
+  /* ================= 阶段0 · M1 基本门与三态 ================= */
   {
-    id: "v-001",
-    topic: "阻塞与非阻塞赋值",
+    id: "m1-01",
+    topic: "M1 基本门与三态",
     type: "choice",
-    question: "在时序逻辑（always @(posedge clk)）中建模寄存器，应使用哪种赋值？",
-    options: ["阻塞赋值 =", "非阻塞赋值 <=", "两者等价，随意使用", "assign 语句"],
+    question: "用 assign 描述一个与门 y = a & b，y 应该声明为什么类型？",
+    options: ["reg", "wire", "logic 且必须过程赋值", "integer"],
     answer: 1,
-    explanation: "时序逻辑建模寄存器必须使用非阻塞赋值 <=，保证采样-更新语义与真实触发器一致，避免仿真竞争。",
-    code: "always @(posedge clk) begin\n  q <= d;   // 寄存器：非阻塞\nend",
-    tags: ["Verilog基础", "高频"]
+    explanation: "assign 连续赋值驱动的是线网类型，最典型的是 wire。reg 表示过程赋值目标，不能被 assign 驱动。",
+    code: "module and_gate(\n  input  wire a, b,\n  output wire y\n);\n  assign y = a & b;\nendmodule",
+    tags: ["组合逻辑", "基础"]
   },
   {
-    id: "v-002",
-    topic: "阻塞与非阻塞赋值",
+    id: "m1-02",
+    topic: "M1 基本门与三态",
     type: "choice",
-    question: "组合逻辑 always 块中推荐使用哪种赋值，且敏感列表应如何写？",
+    question: "下列哪种写法能实现高电平使能的三态输出（使能无效时输出悬空）？",
     options: [
-      "阻塞赋值，敏感列表写 always @(*)",
-      "非阻塞赋值，敏感列表写 always @(*)",
-      "阻塞赋值，敏感列表写 always @(posedge clk)",
-      "非阻塞赋值，敏感列表写 always @(negedge clk)"
-    ],
-    answer: 0,
-    explanation: "组合逻辑用阻塞赋值 = 并配 always @(*)，避免综合出锁存器；注意 if/case 分支要给所有信号赋默认值。",
-    tags: ["Verilog基础", "锁存器"]
-  },
-  {
-    id: "v-003",
-    topic: "阻塞与非阻塞赋值",
-    type: "choice",
-    question: "以下代码在仿真中会得到什么结果？\nalways @(posedge clk) begin\n  b = a;\n  c = b;\nend\nalways @(posedge clk) begin\n  e <= c;\nend",
-    options: [
-      "c 在同一时刻立即等于 a，e 下一拍等于 a",
-      "c 下一拍才等于 a，e 下一拍等于旧 c",
-      "综合报错",
-      "b、c、e 均下一拍等于 a"
-    ],
-    answer: 0,
-    explanation: "阻塞赋值顺序执行：b、c 在同一时间步立即更新为 a。第二个 always 在同一 clk 沿被触发时读到的是新值，因此 e 下一拍等于 a。这正是阻塞/非阻塞混用容易引起仿真-综合不一致的原因。",
-    tags: ["仿真语义", "高频"]
-  },
-  {
-    id: "v-004",
-    topic: "状态机设计",
-    type: "choice",
-    question: "三段式状态机相比一段式的最主要优势是？",
-    options: [
-      "状态编码更少",
-      "时序输出寄存、组合与时序分离，利于时序收敛与维护",
-      "不需要状态寄存器",
-      "功耗一定更低"
+      "assign y = en ? a : 1'b0;",
+      "assign y = en ? a : 1'bz;",
+      "assign y = en ? a : 1'bx;",
+      "assign y = a & en;"
     ],
     answer: 1,
-    explanation: "三段式：状态寄存器（时序）/ 次态译码（组合）/ 输出译码（常配时序输出）。结构清晰、输出无毛刺、利于 STA 与维护。",
-    code: "// 三段式骨架\nalways @(posedge clk) state <= next_state;\nalways @(*) case (state) S0: next_state = cond ? S1 : S0; ... endcase\nalways @(posedge clk) if (state == S1) out <= 1'b1; else out <= 1'b0;",
-    tags: ["状态机", "设计规范"]
+    explanation: "三态的本质是输出高阻态 1'bz。en 无效时 y = 1'bz，总线交由其他驱动器；1'b0/1'bx/与门都会持续驱动总线。",
+    code: "assign y = en ? a : 1'bz;   // en=0 时 y 高阻\n// 等价原语：bufif1 b1 (y, a, en);",
+    tags: ["组合逻辑", "三态"]
   },
   {
-    id: "v-005",
-    topic: "状态机设计",
+    id: "m1-03",
+    topic: "M1 基本门与三态",
+    type: "choice",
+    question: "两个 assign 同时驱动同一个 wire（一个输出 1，一个输出 0），仿真和综合分别会怎样？",
+    options: [
+      "仿真得 x，综合报多驱动错误或生成有损结构",
+      "仿真取最后一个 assign 的值，综合无影响",
+      "仿真和综合都自动线与",
+      "仿真、综合都不会有任何异常"
+    ],
+    answer: 0,
+    explanation: "1 与 0 同时驱动 1 位线网，仿真中解析为未知态 x；综合时这是总线冲突，通常直接报错，或按工艺生成有损/非法结构。三态总线只允许「同时至多一个有效驱动」。",
+    tags: ["组合逻辑", "多驱动"]
+  },
+  {
+    id: "m1-04",
+    topic: "M1 基本门与三态",
     type: "judge",
-    question: "简答：为什么状态机要设计「安全状态机」（对未用状态有恢复路径）？至少说一个场景。",
-    answer_ref: "参考：独热码/格雷码存在未用编码，若因 SEU、复位释放竞争或 X 传播进入未用状态，无恢复路径会死机；上电 X 态、抗干扰设计都要求次态逻辑对非法状态默认回到 IDLE。",
-    explanation: "常见的做法：case 中加 default 次态回 IDLE；综合属性 safe_fsm / full_case parallel_case 的取舍需谨慎。",
-    tags: ["状态机", "可靠性"]
+    question: "手写：模块端口 a、b、sel_in（低有效），实现 y = a 与 b 的与，再经 sel_in 控制的三态输出（sel_in=0 时输出有效）。",
+    answer_ref: "参考：\nmodule tri_and(\n  input  wire a, b,\n  input  wire sel_in,   // 低有效\n  output wire y\n);\n  wire and_out = a & b;\n  assign y = !sel_in ? and_out : 1'bz;\nendmodule\n关键点：先内部 wire 算与，再套三态；低有效记得取反。",
+    explanation: "三态门 = 组合结果 + 使能选择 1'bz。低有效使能判断 !sel_in。",
+    tags: ["手写", "三态"]
   },
   {
-    id: "v-006",
-    topic: "复位设计",
+    id: "m1-05",
+    topic: "M1 基本门与三态",
+    type: "choice",
+    question: "关于 wire 与 reg，下列说法正确的是？",
+    options: [
+      "wire 只能组合，reg 一定是触发器",
+      "reg 被过程赋值（always/initial）驱动，是否综合成触发器取决于代码是否在时钟沿敏感",
+      "组合 always 块里的 reg 会综合成锁存器",
+      "wire 可以在 always 块内被赋值"
+    ],
+    answer: 1,
+    explanation: "reg/wire 是仿真语义：reg=过程赋值目标。always @(*) 中的 reg 综合成纯组合逻辑，always @(posedge clk) 中才是触发器；只有分支不完整才会意外生成锁存器。always 块内不能对 wire 过程赋值。",
+    tags: ["基础", "wire与reg"]
+  },
+
+  /* ================= 阶段0 · M2 多路选择器 ================= */
+  {
+    id: "m2-01",
+    topic: "M2 多路选择器",
+    type: "judge",
+    question: "手写：分别用三种风格实现 2 选 1 MUX（a、b、sel → y）：① assign + 条件运算符；② always @(*) + if-else；③ always @(*) + case。",
+    answer_ref: "参考：\n// ① 连续赋值\nassign y = sel ? b : a;\n\n// ② if-else（reg 型 y）\nalways @(*) begin\n  if (sel) y = b;\n  else     y = a;\nend\n\n// ③ case（reg 型 y）\nalways @(*) begin\n  case (sel)\n    1'b1:    y = b;\n    default: y = a;\n  endcase\nend\n三种写法综合结果一致；②③ 中 y 须声明为 reg（或 SV logic）。",
+    explanation: "MUX 是组合逻辑的三种标准写法训练：assign 表达式、if-else、case。注意 ②③ 中 y 是 reg，但综合出来仍是组合逻辑。",
+    tags: ["手写", "MUX"]
+  },
+  {
+    id: "m2-02",
+    topic: "M2 多路选择器",
+    type: "choice",
+    question: "4 选 1 MUX 用 case(sel) 实现，若 case 分支只写了 2'b00、2'b01、2'b10 三种，sel=2'b11 时输出？",
+    options: [
+      "自动输出 0",
+      "保持上一次的值（组合 always 中即为锁存器）",
+      "编译错误",
+      "输出 x"
+    ],
+    answer: 1,
+    explanation: "组合 always 中 case 分支不全且无 default，工具会「保持原值」，综合出锁存器。mux/译码类组合逻辑务必补 default 分支。",
+    code: "always @(*) begin\n  case (sel)\n    2'b00: y = a;\n    2'b01: y = b;\n    2'b10: y = c;\n    // 缺 2'b11 → latch!\n  endcase\nend",
+    tags: ["组合逻辑", "latch"]
+  },
+  {
+    id: "m2-03",
+    topic: "M2 多路选择器",
+    type: "choice",
+    question: "下列哪个表达式与「sel 为真选 b 否则选 a」不等价？",
+    options: [
+      "sel ? b : a",
+      "(sel & b) | (~sel & a)",
+      "(sel == 1'b1) ? b : a",
+      "sel | b"
+    ],
+    answer: 3,
+    explanation: "sel | b 是或运算：sel=1 时输出恒 1，与 b 无关，不是选择。位选表达式 (sel&b)|(~sel&a) 才是 1 位 MUX 的门级形式。",
+    tags: ["组合逻辑", "运算符"]
+  },
+  {
+    id: "m2-04",
+    topic: "M2 多路选择器",
+    type: "judge",
+    question: "手写：8 选 1 MUX，数据输入 d[7:0]，选择信号 sel[2:0]，要求用变量位选择一行 assign 实现（提示：d[sel]）。",
+    answer_ref: "参考：\nmodule mux8(\n  input  wire [7:0] d,\n  input  wire [2:0] sel,\n  output wire y\n);\n  assign y = d[sel];   // sel 作为索引，综合成 8:1 MUX\nendmodule\n等价展开：assign y = sel==0 ? d[0] : ... : d[7];",
+    explanation: "变量索引 d[sel] 综合为多路选择器；比写 8 个分支的 case 简洁，综合结果相同。",
+    tags: ["手写", "MUX"]
+  },
+
+  /* ================= 阶段0 · M3 译码器与优先编码器 ================= */
+  {
+    id: "m3-01",
+    topic: "M3 译码与优先编码",
+    type: "judge",
+    question: "手写：3-8 译码器，输入 sel[2:0]、使能 en（高有效），输出 onehot[7:0]（en 无效时输出全 0）。",
+    answer_ref: "参考：\nmodule dec3to8(\n  input  wire       en,\n  input  wire [2:0] sel,\n  output reg  [7:0] onehot\n);\n  always @(*) begin\n    onehot = 8'b0;              // 默认值，防 latch\n    if (en) onehot[sel] = 1'b1;\n  end\nendmodule",
+    explanation: "先给默认值再覆盖，是最稳的组合写法；onehot[sel] 用变量位选，en 无效时保持全 0。",
+    tags: ["手写", "译码器"]
+  },
+  {
+    id: "m3-02",
+    topic: "M3 译码与优先编码",
+    type: "choice",
+    question: "8-3 优先编码器要求「数值最大的请求优先」，输入 req[7:0]（1 有效），应优先使用哪种结构？",
+    options: [
+      "case (req) 列出 256 种取值",
+      "if-else 链从 req[7] 开始向下判断",
+      "for 循环从 req[0] 开始向上判断",
+      "直接 y = req[7:5]"
+    ],
+    answer: 1,
+    explanation: "优先级 = if-else 的判定顺序。从最高位开始向下判断，先命中者优先；case 表达优先级需要 priority/casez 技巧，256 分支也不现实。",
+    tags: ["优先编码器"]
+  },
+  {
+    id: "m3-03",
+    topic: "M3 译码与优先编码",
+    type: "choice",
+    question: "casez 中，分支写成 4'b1??? 表示？",
+    options: [
+      "只匹配 4'b1000",
+      "高位为 1 的任意取值都匹配（? 是不关心位）",
+      "语法错误",
+      "匹配所有输入"
+    ],
+    answer: 1,
+    explanation: "casez 把 z 和 ? 视为不关心位，用于按前缀匹配；这是表达优先级结构的常用手法。casex 更激进（x 也匹配），仿真中容易掩盖真实 x，工程上更推荐 casez。",
+    code: "casez (req)\n  4'b1???: grant = 4'b1000;\n  4'b01??: grant = 4'b0100;\n  4'b001?: grant = 4'b0010;\n  4'b0001: grant = 4'b0001;\n  default: grant = 4'b0;\nendcase",
+    tags: ["casez", "优先编码器"]
+  },
+  {
+    id: "m3-04",
+    topic: "M3 译码与优先编码",
+    type: "judge",
+    question: "手写：4-2 优先编码器，输入 req[3:0]（1 有效，req[3] 优先级最高），输出 code[1:0] 和 valid（无请求时 valid=0）。用 casez 实现。",
+    answer_ref: "参考：\nmodule prio_enc4(\n  input  wire [3:0] req,\n  output reg  [1:0] code,\n  output reg        valid\n);\n  always @(*) begin\n    {valid, code} = 3'b0;       // 默认值\n    casez (req)\n      4'b1???: {valid, code} = 3'b1_11;\n      4'b01??: {valid, code} = 3'b1_10;\n      4'b001?: {valid, code} = 3'b1_01;\n      4'b0001: {valid, code} = 3'b1_00;\n      default: {valid, code} = 3'b0_00;\n    endcase\n  end\nendmodule\n注意位拼接默认值 + casez 不关心位写法。",
+    explanation: "casez 前缀匹配天然表达优先级；default 分支保证组合逻辑无 latch。",
+    tags: ["手写", "casez"]
+  },
+
+  /* ================= 阶段0 · M4 加法器与比较器 ================= */
+  {
+    id: "m4-01",
+    topic: "M4 加法与比较",
+    type: "judge",
+    question: "手写：全加器 fa(a, b, cin → sum, cout)，再用结构化方式例化两个 fa 组成 2 位行波加法器 add2(x[1:0], y[1:0] → s[1:0], co)。",
+    answer_ref: "参考：\nmodule fa(input wire a, b, cin,\n          output wire sum, cout);\n  assign sum  = a ^ b ^ cin;\n  assign cout = (a & b) | (cin & (a ^ b));\nendmodule\n\nmodule add2(input wire [1:0] x, y,\n            output wire [1:0] s,\n            output wire co);\n  wire c1;\n  fa u0(.a(x[0]), .b(y[0]), .cin(1'b0), .sum(s[0]), .cout(c1));\n  fa u1(.a(x[1]), .b(y[1]), .cin(c1),   .sum(s[1]), .cout(co));\nendmodule",
+    explanation: "全加器 sum=a^b^cin，cout=ab+cin(a^b)；行波结构逐级传递进位，进位延迟随位宽线性增长——这是理解超前进位（CLA）的动机。",
+    tags: ["手写", "加法器"]
+  },
+  {
+    id: "m4-02",
+    topic: "M4 加法与比较",
+    type: "choice",
+    question: "两个 8 位无符号数 a+b，为使进位 cout 不丢失，正确写法是？",
+    options: [
+      "wire [7:0] s = a + b; assign cout = s[8];",
+      "wire [8:0] s = {1'b0,a} + {1'b0,b}; assign cout = s[8];",
+      "assign cout = a[7] & b[7];",
+      "直接把 cout 端口接到和的最高位即可"
+    ],
+    answer: 1,
+    explanation: "表达式位宽由 LHS 决定，s 为 8 位时进位被截断。先扩位到 9 位再相加，进位保存在 s[8]。a[7]&b[7] 漏掉「进位传播」的中间进位情况。",
+    code: "wire [8:0] s = {1'b0, a} + {1'b0, b};\nassign sum  = s[7:0];\nassign cout = s[8];",
+    tags: ["位宽", "加法器"]
+  },
+  {
+    id: "m4-03",
+    topic: "M4 加法与比较",
+    type: "judge",
+    question: "手写：4 位无符号比较器，输出 gt（a>b）、eq、lt，要求写出直接比较式，并附「减法借位」视角的等价实现思路。",
+    answer_ref: "参考：\nmodule cmp4(\n  input  wire [3:0] a, b,\n  output wire gt, eq, lt\n);\n  assign eq = (a == b);\n  assign gt = (a > b);\n  assign lt = (a < b);\nendmodule\n减法视角：wire [4:0] diff = {1'b0,a} - {1'b0,b};\neq = (diff[3:0]==0); gt = ~diff[4] & ~eq;（无符号减法无借位且非零即 gt）。",
+    explanation: "直接关系运算符即可综合出比较器；减法视角帮助理解借位与 gt/lt 的对应关系。",
+    tags: ["手写", "比较器"]
+  },
+  {
+    id: "m4-04",
+    topic: "M4 加法与比较",
+    type: "choice",
+    question: "行波进位加法器位宽加倍，最坏路径延迟大约？",
+    options: ["不变", "翻倍", "翻 4 倍", "与位宽无关"],
+    answer: 1,
+    explanation: "行波结构中进位逐级传播，最坏延迟 ~ O(N)，位宽加倍则延迟约翻倍。超前进位（CLA）把进位生成/传播并行计算，延迟 ~ O(log N)。",
+    tags: ["时序概念", "加法器"]
+  },
+
+  /* ================= 阶段0 · M5 组合陷阱：latch ================= */
+  {
+    id: "m5-01",
+    topic: "M5 组合陷阱",
+    type: "choice",
+    question: "下列组合 always 块中，哪种写法不会产生锁存器？",
+    options: [
+      "if (en) y = a;（无 else）",
+      "case (s) 2'b00: y=a; 2'b01: y=b; endcase",
+      "块首 y = 默认值; 再 if (en) y = a;",
+      "if (en) y = a; else if (sel) y = b;"
+    ],
+    answer: 2,
+    explanation: "先赋默认值再条件覆盖，任何路径都有赋值，无 latch。A/D 的分支覆盖不全且无默认值，B 的 case 分支不全，都会生成锁存器。",
+    tags: ["latch", "组合逻辑"]
+  },
+  {
+    id: "m5-02",
+    topic: "M5 组合陷阱",
+    type: "choice",
+    question: "always @(*) 中读了信号 tmp，但敏感列表手写成了 always @(a, b) 漏掉 tmp，会怎样？",
+    options: [
+      "综合结果不变，仿真可能出现「保持旧值」行为",
+      "综合报错",
+      "仿真、综合行为一致且正确",
+      "自动被工具修正"
+    ],
+    answer: 0,
+    explanation: "敏感列表不全时，综合工具按代码意图仍生成组合逻辑，但仿真中 tmp 变化不会重新触发块，输出保持旧值——典型的仿真-综合不一致。所以组合逻辑一律用 @(*)。",
+    tags: ["敏感列表", "仿真不一致"]
+  },
+  {
+    id: "m5-03",
+    topic: "M5 组合陷阱",
+    type: "judge",
+    question: "找错并改正：下面的组合逻辑想实现「en 时 y=b 否则 y=a」，当前会产生 latch，请给出两种不产生 latch 的改法。",
+    code: "always @(*) begin\n  if (en)\n    y = b;\nend",
+    answer_ref: "参考：\n// 写法1 补 else\nalways @(*) begin\n  if (en) y = b;\n  else    y = a;\nend\n\n// 写法2 默认值\nalways @(*) begin\n  y = a;          // 默认\n  if (en) y = b;\nend",
+    explanation: "latch 成因 = 组合块中某条路径无赋值。补全分支或先赋默认值即可。",
+    tags: ["手写", "latch"]
+  },
+
+  /* ================= 阶段1 · M6 触发器 ================= */
+  {
+    id: "m6-01",
+    topic: "M6 触发器",
+    type: "choice",
+    question: "下列哪种描述会综合成带异步复位的 D 触发器？",
+    options: [
+      "always @(posedge clk) if(!rst_n) q<=0; else q<=d;",
+      "always @(posedge clk or negedge rst_n) if(!rst_n) q<=0; else q<=d;",
+      "always @(posedge clk or rst_n) if(rst_n) q<=d;",
+      "always @(*) if(!rst_n) q<=0; else q<=d;"
+    ],
+    answer: 1,
+    explanation: "异步复位 = 复位信号出现在敏感列表（posedge/negedge），且复位值判断在块首。选项 C 敏感列表写法非法（复位须指明边沿），D 是组合逻辑。",
+    code: "always @(posedge clk or negedge rst_n)\n  if (!rst_n) q <= 1'b0;\n  else        q <= d;",
+    tags: ["时序逻辑", "复位"]
+  },
+  {
+    id: "m6-02",
+    topic: "M6 触发器",
+    type: "judge",
+    question: "手写：带低有效异步复位、高有效同步使能 en 的 D 触发器（d → q），en 无效时保持。",
+    answer_ref: "参考：\nmodule dff_en(\n  input  wire clk, rst_n, en, d,\n  output reg  q\n);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n)  q <= 1'b0;\n    else if (en) q <= d;   // 使能无效 → 保持\n  end\nendmodule\n使能的本质：不满足条件就不赋值，寄存器保持原值（综合成 MUX+DFF）。",
+    explanation: "使能 = 分支条件不满足时不更新寄存器，综合器自动加反馈 MUX。",
+    tags: ["手写", "触发器"]
+  },
+  {
+    id: "m6-03",
+    topic: "M6 触发器",
+    type: "choice",
+    question: "同步复位与异步复位，下列说法错误的是？",
+    options: [
+      "同步复位对复位脉冲宽度有要求（须至少覆盖一个时钟沿）",
+      "异步复位不依赖时钟，但释放时刻要防 recovery/removal 违例",
+      "同步复位让复位走数据路径，综合器更易做时序收敛，但会占用数据路径逻辑",
+      "异步复位释放无需任何处理，直接撤销即可"
+    ],
+    answer: 3,
+    explanation: "异步复位撤销时刻若靠近时钟沿会违例 recovery/removal，工程上必须做「异步复位、同步释放」（两级 FF 同步释放）。其余三项均为两种复位风格的真实权衡。",
+    tags: ["复位设计"]
+  },
+  {
+    id: "m6-04",
+    topic: "M6 触发器",
     type: "choice",
     question: "关于异步复位、同步释放（async reset, sync release），下列说法正确的是？",
     options: [
@@ -85,26 +320,297 @@ const QUESTIONS = [
     answer: 1,
     explanation: "复位有效可以异步立即生效；撤销时刻若靠近时钟沿会造成 recovery/removal 违例，因此用两级触发器同步释放。这是 ASIC/FPGA 通行的复位风格。",
     code: "always @(posedge clk or negedge rst_n)\n  if (!rst_n) rst_n_sync <= 2'b00;\n  else        rst_n_sync <= {rst_n_sync[0], 1'b1};",
-    tags: ["复位", "高频"]
+    tags: ["复位设计", "高频"]
+  },
+
+  /* ================= 阶段1 · M7 边沿检测 ================= */
+  {
+    id: "m7-01",
+    topic: "M7 边沿检测",
+    type: "choice",
+    question: "检测 sig 的上升沿，标准两级触发器写法是？",
+    options: [
+      "assign pos = sig & sig;",
+      "打两拍 q1、q2，assign pos = q1 & ~q2",
+      "打两拍 q1、q2，assign pos = ~q1 & q2",
+      "assign pos = sig ^ q1，一级 FF 即可"
+    ],
+    answer: 1,
+    explanation: "q1 是 sig 的当前同步值，q2 是它上一拍的值：本拍高、上拍低（q1 & ~q2）即为上升沿。~q1&q2 是下降沿。选项 D 与 sig 同拍变化，q1 与 sig 不对齐。",
+    code: "always @(posedge clk) begin\n  q1 <= sig;\n  q2 <= q1;\nend\nassign pos = q1 & ~q2;   // 上升沿：本拍1、上拍0\nassign neg = ~q1 & q2;   // 下降沿",
+    tags: ["边沿检测"]
   },
   {
-    id: "v-007",
-    topic: "CDC跨时钟域",
+    id: "m7-02",
+    topic: "M7 边沿检测",
+    type: "judge",
+    question: "手写：对输入 sig 做两级同步并输出 pos_pulse（sig 上升沿时的单周期脉冲）。",
+    answer_ref: "参考：\nmodule edge_det(\n  input  wire clk, rst_n, sig,\n  output wire pos_pulse\n);\n  reg sig_q1, sig_q2;\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) {sig_q2, sig_q1} <= 2'b00;\n    else        {sig_q2, sig_q1} <= {sig_q1, sig};\n  end\n  assign pos_pulse = sig_q1 & ~sig_q2;\nendmodule",
+    explanation: "两级 FF 既完成同步又提供历史值；pos_pulse 只在 sig 由 0→1 后的那一拍为高。",
+    tags: ["手写", "边沿检测"]
+  },
+  {
+    id: "m7-03",
+    topic: "M7 边沿检测",
+    type: "choice",
+    question: "为什么边沿检测要用两级触发器，而不是直接比较 sig 与其「组合延迟版本」？",
+    options: [
+      "节省寄存器",
+      "组合延迟版本会带来毛刺且不可靠；两级 FF 让信号与其历史都时钟对齐，比较输出才是干净的单拍脉冲",
+      "两级 FF 更快",
+      "单级 FF 无法保持状态"
+    ],
+    answer: 1,
+    explanation: "直接用组合延迟做的「边沿」实际是毛刺脉冲，宽度不可控。打两拍把 sig 与其历史都变成时钟对齐的寄存器信号，比较结果才是可靠的同步脉冲。",
+    tags: ["边沿检测", "毛刺"]
+  },
+
+  /* ================= 阶段1 · M8 计数器 ================= */
+  {
+    id: "m8-01",
+    topic: "M8 计数器",
+    type: "judge",
+    question: "手写：带异步复位、使能的 8 位向上计数器，计数到 200 时产生单周期脉冲 tick，到 200 后回 0（模 201）。",
+    answer_ref: "参考：\nmodule cnt200(\n  input  wire clk, rst_n, en,\n  output reg  [7:0] cnt,\n  output wire tick\n);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n)  cnt <= 8'd0;\n    else if (en)\n      cnt <= (cnt == 8'd200) ? 8'd0 : cnt + 8'd1;\n  end\n  assign tick = (cnt == 8'd200);\nendmodule\n200 < 256，8 位够用；tick 为组合比较输出，若要求严格单拍无毛刺可再打一拍。",
+    explanation: "模 N 计数器三要素：复位值、终点比较、回绕赋值。tick 用组合比较生成跟随 cnt。",
+    tags: ["手写", "计数器"]
+  },
+  {
+    id: "m8-02",
+    topic: "M8 计数器",
+    type: "choice",
+    question: "想要模 10 计数器（0..9 循环），写成 if (cnt == 4'd9) cnt <= 0; else cnt <= cnt + 1。若删掉对 9 的判断，直接 cnt <= cnt + 1，会发生什么？",
+    options: [
+      "计数器停在 9",
+      "计数器数到 15 后回 0，模从 10 变成 16",
+      "溢出报错",
+      "产生未知态"
+    ],
+    answer: 1,
+    explanation: "4 位计数器自然回绕点是 15→0。判断「计到 9」是把模从 16 截成 10 的关键；删掉后 9、10、…、15 都会出现，模变成 16。off-by-one 是计数器最高频错误。",
+    tags: ["计数器", "模N"]
+  },
+  {
+    id: "m8-03",
+    topic: "M8 计数器",
+    type: "choice",
+    question: "实现「每 100 个时钟产生一个单周期脉冲」，以下说法正确的是？",
+    options: [
+      "计数器计到 100 时置 tick=1",
+      "计数 0..99，cnt==99 的下一拍回 0；在 cnt==99 时刻（或回 0 时打一拍）产生 tick",
+      "tick 需要 100 个周期宽",
+      "必须用状态机实现"
+    ],
+    answer: 1,
+    explanation: "模 100：cnt 取 0..99 共 100 个值，在 cnt==99 产生脉冲。若写成「计到 100」会需要 7 位且边界多算一拍——0..99 vs 1..100 的 off-by-one 是高频错误。",
+    tags: ["计数器", "off-by-one"]
+  },
+  {
+    id: "m8-04",
+    topic: "M8 计数器",
+    type: "judge",
+    question: "手写：可预置的 4 位加减计数器：up_down=1 加、0 减，load 有效时下一拍载入 d[3:0]，带异步复位。",
+    answer_ref: "参考：\nmodule cnt_ud(\n  input  wire clk, rst_n, load, up_down,\n  input  wire [3:0] d,\n  output reg  [3:0] q\n);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n)       q <= 4'd0;\n    else if (load)    q <= d;\n    else if (up_down) q <= q + 4'd1;\n    else              q <= q - 4'd1;\n  end\nendmodule\n优先级：复位 > load > 计数。",
+    explanation: "计数器 = 复位 + 置数 + 加减选择的三级优先 if-else；load 优先于计数方向。",
+    tags: ["手写", "计数器"]
+  },
+
+  /* ================= 阶段1 · M9 分频器 ================= */
+  {
+    id: "m9-01",
+    topic: "M9 分频器",
+    type: "judge",
+    question: "手写：偶数分频——把 clk 8 分频，输出占空比 50% 的 clk_div8（分频输出用寄存器生成，不做门控时钟）。",
+    answer_ref: "参考：\nmodule div8(\n  input  wire clk, rst_n,\n  output reg  clk_div8\n);\n  reg [2:0] cnt;\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      cnt <= 3'd0; clk_div8 <= 1'b0;\n    end else begin\n      cnt <= cnt + 3'd1;\n      if (cnt == 3'd3) clk_div8 <= ~clk_div8; // 每 4 拍翻转一次\n    end\n  end\nendmodule\nN=8：计到 N/2-1=3 翻转，输出周期 = 8 个 clk。",
+    explanation: "偶数 N 分频：计数到 N/2-1 翻转输出。分频输出是普通寄存器信号，下游建议作时钟使能使用。",
+    tags: ["手写", "分频"]
+  },
+  {
+    id: "m9-02",
+    topic: "M9 分频器",
+    type: "choice",
+    question: "奇数分频（如 3 分频）要输出 50% 占空比，核心技巧是？",
+    options: [
+      "单计数器在计到 (N-1)/2 时翻转一次",
+      "上升沿计数产生一个方波、下降沿计数产生错开半周期的方波，再按位或",
+      "用 clk 的下降沿计一次数即可",
+      "奇数分频无法得到 50% 占空比"
+    ],
+    answer: 1,
+    explanation: "奇数 N：上升沿计数的方波在 (N-1)/2 处翻转、下降沿计数的方波错开半周期翻转，两者「或」起来得到占空比 50% 的 N 分频。",
+    tags: ["分频", "奇偶分频"]
+  },
+  {
+    id: "m9-03",
+    topic: "M9 分频器",
+    type: "choice",
+    question: "为什么不推荐「直接把分频寄存器输出当下游模块的时钟」（如 always @(posedge clk_div)）？",
+    options: [
+      "语法不支持",
+      "寄存器衍生时钟有偏斜/毛刺风险，STA 难以约束；工程惯例是全局单时钟 + 时钟使能",
+      "会占用更多 LUT",
+      "仿真速度变慢"
+    ],
+    answer: 1,
+    explanation: "寄存器产生的分频信号作时钟会引入不可控偏斜，STA 也难以约束。标准做法：系统单一时钟，低速逻辑用 clk_en 使能打拍。",
+    tags: ["时钟设计", "分频"]
+  },
+  {
+    id: "m9-04",
+    topic: "M9 分频器",
+    type: "judge",
+    question: "手写：3 分频 50% 占空比输出（提示：上升沿计数产生 div_p，下降沿产生错开半周期的 div_n，clk_div3 = div_p | div_n）。",
+    answer_ref: "参考：\nmodule div3(\n  input  wire clk, rst_n,\n  output wire clk_div3\n);\n  reg [1:0] cnt_p;\n  reg div_p, div_n;\n  // 上升沿：计数 0,1 为高（占 2/3 周期）\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin cnt_p <= 0; div_p <= 0; end\n    else begin\n      cnt_p <= (cnt_p == 2'd2) ? 2'd0 : cnt_p + 2'd1;\n      div_p <= (cnt_p == 2'd0);\n    end\n  end\n  // 下降沿重采样，错开半周期\n  always @(negedge clk or negedge rst_n) begin\n    if (!rst_n) div_n <= 0;\n    else        div_n <= div_p;   // 对 div_p 打一拍（negedge 域）\n  end\n  assign clk_div3 = div_p | div_n;\nendmodule",
+    explanation: "上升沿方波占 2/3、下降沿延迟版占 2/3 但错开半周期，取或后高 1.5 拍低 1.5 拍，即 50% 占空比的 3 分频。",
+    tags: ["手写", "奇数分频"]
+  },
+
+  /* ================= 阶段2 · C1 计数器（六件套①） ================= */
+  {
+    id: "c1-01",
+    topic: "C1 计数器",
+    type: "choice",
+    question: "「FIFO 的写指针本质是什么？」——下列说法最准确的是？",
+    options: [
+      "一个状态机",
+      "一个只加不减、按深度回绕的计数器",
+      "一个比较器",
+      "一个移位寄存器"
+    ],
+    answer: 1,
+    explanation: "FIFO 写/读指针 = 循环计数器：只递增、到深度回绕（深度取 2 的幂时回绕即自然溢出，无需比较）。FIFO = 指针计数器 + 存储阵列 + 空/满比较逻辑。",
+    tags: ["计数器", "FIFO"]
+  },
+  {
+    id: "c1-02",
+    topic: "C1 计数器",
+    type: "judge",
+    question: "手写：分频链——50MHz 时钟，输出 dsec_tick（每 0.1 秒一个单周期脉冲）和 sec_tick（每秒一个脉冲）。写出计数链。",
+    answer_ref: "参考：\n// 50_000_000 需要 26 位（2^26≈67M）\nreg [25:0] cnt_main;\nreg [3:0]  cnt_sub;    // 0.1s 内数 10 次\nwire tick_100ms;\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n) cnt_main <= 0;\n  else cnt_main <= (cnt_main == 26'd4_999_999) ? 0 : cnt_main + 1'b1;\nend\nassign tick_100ms = (cnt_main == 26'd4_999_999);\n// 0.1s 计 10 次 → 1s\nalways @(posedge clk or negedge rst_n) begin\n  if (!rst_n) cnt_sub <= 0;\n  else if (tick_100ms)\n    cnt_sub <= (cnt_sub == 4'd9) ? 0 : cnt_sub + 1'b1;\nend\nassign dsec_tick = tick_100ms;\nassign sec_tick  = tick_100ms && (cnt_sub == 4'd9);",
+    explanation: "大分频比拆成计数链：主计数器产生 0.1s 基准脉冲，再数 10 次产生 1s。体现「分频 = 计数 + 脉冲」的复用思想。",
+    tags: ["手写", "计数器", "分频链"]
+  },
+
+  /* ================= 阶段2 · C2 序列检测与生成 ================= */
+  {
+    id: "c2-01",
+    topic: "C2 序列检测",
+    type: "choice",
+    question: "实现「检测输入序列 1011（可重叠）」的 Mealy 型检测器，状态数至少为？",
+    options: ["3 个", "4 个", "5 个", "8 个"],
+    answer: 1,
+    explanation: "跟踪最长可复用前缀：S0(空)/S1(1)/S10(10)/S101(101)，检测到 1011 输出 1 并可复用尾部 1 回 S1，共 4 个状态。可重叠意味着命中后部分后缀可作新前缀。",
+    tags: ["状态机", "序列检测"]
+  },
+  {
+    id: "c2-02",
+    topic: "C2 序列检测",
+    type: "judge",
+    question: "手写：三段式状态机实现 1011 序列检测（可重叠），输入 din、clk、rst_n，输出 hit（检测到当拍为 1）。",
+    answer_ref: "参考：\nlocalparam S0=2'd0, S1=2'd1, S10=2'd2, S101=2'd3;\nreg [1:0] state, nstate;\n// 1) 状态寄存器\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) state <= S0;\n  else        state <= nstate;\n// 2) 次态组合\nalways @(*) begin\n  nstate = S0;               // 默认\n  case (state)\n    S0:   nstate = din ? S1   : S0;\n    S1:   nstate = din ? S1   : S10;\n    S10:  nstate = din ? S101 : S0;\n    S101: nstate = din ? S1   : S10;  // 命中后尾 1 复用\n  endcase\nend\n// 3) 输出（Mealy）\nassign hit = (state == S101) && din;",
+    explanation: "三段式 = 时序状态寄存 + 组合次态 + 输出逻辑，分支全覆盖无 latch。S101 收到 1 命中，尾部 1 复用回 S1（可重叠）。",
+    tags: ["手写", "状态机"]
+  },
+  {
+    id: "c2-03",
+    topic: "C2 序列检测",
+    type: "choice",
+    question: "同一序列检测若改用「移位寄存器法」（保存最近 4 拍输入，比较窗口），与状态机法相比？",
+    options: [
+      "状态机法一定面积更小",
+      "移位法代码更短、易改序列值，但寄存器数随序列长度线性增长",
+      "移位法无法检测可重叠序列",
+      "移位法不能综合"
+    ],
+    answer: 1,
+    explanation: "移位法：shift <= {shift[2:0], din}; hit = (shift == 4'b1011)。定长序列场景代码极简，代价是每拍一位寄存器；序列更长/模式更多时状态机更省资源。",
+    tags: ["序列检测", "移位寄存器"]
+  },
+  {
+    id: "c2-04",
+    topic: "C2 序列检测",
+    type: "judge",
+    question: "手写：序列生成器——循环输出序列 1,0,1,1（每拍一位，无限循环），用计数器+查找表或循环移位任一实现。",
+    answer_ref: "参考：\n// 法1：计数器 + 查找表\nreg [1:0] idx;\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) idx <= 0;\n  else        idx <= idx + 2'd1;   // 自然回绕 0..3\nassign dout = (idx == 2'd0) ? 1'b1 :\n              (idx == 2'd1) ? 1'b0 : 1'b1;  // idx=2,3 → 1,1\n\n// 法2：4 位循环移位\nreg [3:0] pat;\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) pat <= 4'b1011;\n  else        pat <= {pat[2:0], pat[3]};\nassign dout = pat[3];",
+    explanation: "生成 = 计数器寻址查找表 或 环形移位。与检测互为镜像：检测按输入建状态，生成按状态驱动输出。",
+    tags: ["手写", "序列生成"]
+  },
+
+  /* ================= 阶段2 · C3 去毛刺 ================= */
+  {
+    id: "c3-01",
+    topic: "C3 去毛刺",
+    type: "choice",
+    question: "按键/异步信号去毛刺（debounce）的经典数字做法是？",
+    options: [
+      "一级 FF 直接输出",
+      "N 拍一致法：连续 N 个周期采样值相同才更新输出",
+      "在 Verilog 里模拟 RC 电路",
+      "对信号做 assign 延迟"
+    ],
+    answer: 1,
+    explanation: "N 拍一致：计数器统计采样值保持不变的时间，达到阈值才更新输出并清零计数；任何抖动都会打断计数。N 依据毛刺最长宽度选择。",
+    tags: ["去毛刺", "高频"]
+  },
+  {
+    id: "c3-02",
+    topic: "C3 去毛刺",
+    type: "judge",
+    question: "手写：对异步输入 din 去毛刺，先两级 FF 同步，再「连续 4 拍与当前输出不同才翻转」，输出 db_out。",
+    answer_ref: "参考：\nmodule debounce(\n  input  wire clk, rst_n, din,\n  output reg  db_out\n);\n  reg din_q1, din_q2;\n  reg [1:0] cnt;\n  // 两级同步\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) {din_q2, din_q1} <= 2'b00;\n    else        {din_q2, din_q1} <= {din_q1, din};\n  end\n  // N 拍一致\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin cnt <= 0; db_out <= 0; end\n    else if (din_q2 == db_out) cnt <= 0;\n    else if (cnt == 2'd3) begin\n      db_out <= din_q2;   // 连续 4 拍不同才翻转\n      cnt <= 0;\n    end\n    else cnt <= cnt + 2'd1;\n  end\nendmodule",
+    explanation: "结构 = 两级同步器（防亚稳态）+ N 拍一致（防毛刺）。注意先同步再去毛刺，顺序不能反。",
+    tags: ["手写", "去毛刺"]
+  },
+  {
+    id: "c3-03",
+    topic: "C3 去毛刺",
+    type: "choice",
+    question: "去毛刺模块里「先两级同步、再 N 拍一致」的顺序能否对调？",
+    options: [
+      "可以，逻辑上等价",
+      "不能：计数器直接采异步信号会因亚稳态读到不定值，必须先把信号变成同步域内的干净信号",
+      "应该先计数再同步",
+      "与顺序无关，只与 N 有关"
+    ],
+    answer: 1,
+    explanation: "亚稳态可能让计数器读到中间态，毛刺直接污染计数逻辑。同步器在前，把亚稳态概率压到极低后，N 拍一致才有意义。",
+    tags: ["亚稳态", "去毛刺"]
+  },
+
+  /* ================= 阶段2 · C4 跨时钟域 ================= */
+  {
+    id: "c4-01",
+    topic: "C4 跨时钟域",
     type: "choice",
     question: "单 bit 电平信号从 100MHz 域到 33MHz 域，最合适的处理方式是？",
     options: [
       "直接连线",
       "目的域打两拍同步器",
       "异步 FIFO",
-      "握手 + 两拍同步器，仅电平信号打两拍即可"
+      "握手 + 两拍同步器"
     ],
     answer: 1,
     explanation: "单 bit 电平信号用目的时钟两级触发器同步（打两拍）即可；多 bit 总线或脉冲需用握手/格雷码/异步 FIFO。",
     tags: ["CDC", "高频"]
   },
   {
-    id: "v-008",
-    topic: "CDC跨时钟域",
+    id: "c4-02",
+    topic: "C4 跨时钟域",
+    type: "choice",
+    question: "100MHz 域发出一个单周期脉冲给 33MHz 域，直接打两拍会怎样？正确做法是？",
+    options: [
+      "没问题，脉冲一定能被采到",
+      "可能采不到（脉冲宽 < 目的域周期）；源域用电平/toggle 承载事件，目的域同步+边沿检测还原脉冲",
+      "用更快的时钟",
+      "把脉冲展宽到 3 拍就一定安全"
+    ],
+    answer: 1,
+    explanation: "窄脉冲可能落在目的域两个采样沿之间而丢失。标准方案 toggle/握手：源域翻转发护位或置位电平，目的域同步+边沿检测还原，必要时回传 ack 清除。",
+    tags: ["CDC", "脉冲同步"]
+  },
+  {
+    id: "c4-03",
+    topic: "C4 跨时钟域",
     type: "choice",
     question: "跨时钟域传多个相关的控制 bit（如 {valid, addr[3:0]}），为什么不能各自打两拍？",
     options: [
@@ -115,123 +621,128 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation: "多 bit 信号各 bit 到达时序不同，可能同一拍采到部分新值部分旧值。应使用异步 FIFO、握手，或格雷码（仅限计数类）。",
-    tags: ["CDC"]
+    tags: ["CDC", "多bit"]
   },
   {
-    id: "v-009",
-    topic: "FIFO设计",
+    id: "c4-04",
+    topic: "C4 跨时钟域",
     type: "judge",
-    question: "简答：异步 FIFO 的空/满标志为什么用格雷码比较？深度为何要求 2 的幂？",
-    answer_ref: "参考：格雷码相邻值仅 1 bit 变化，跨时钟域同步时即使采样到跳变瞬间也只可能错成相邻值，不会产生非法读指针导致误判空/满；2 的幂保证格雷码回绕时首尾也只差 1 bit。",
-    explanation: "同步后的指针滞后真实指针，判空判满按保守方向处理（空读指针滞后、满写指针滞后），保证不溢出不错读。",
-    tags: ["FIFO", "高频"]
+    question: "手写：toggle 同步器——源域每收到 pulse_a 把 tgl 翻转一次，目的域两级同步 + 边沿检测还原脉冲 pulse_b。",
+    answer_ref: "参考：\n// 源域\nreg tgl;\nalways @(posedge clk_a or negedge rst_n)\n  if (!rst_n)       tgl <= 1'b0;\n  else if (pulse_a) tgl <= ~tgl;\n\n// 目的域\nreg tgl_q1, tgl_q2, tgl_q3;\nalways @(posedge clk_b or negedge rst_n) begin\n  if (!rst_n) {tgl_q3, tgl_q2, tgl_q1} <= 3'b0;\n  else        {tgl_q3, tgl_q2, tgl_q1} <= {tgl_q2, tgl_q1, tgl};\nend\nassign pulse_b = tgl_q2 ^ tgl_q3;   // 当前值与上一拍异或 → 单拍脉冲",
+    explanation: "toggle 把「脉冲」转成「电平翻转」，电平同步不丢事件；目的域用异或当前/历史值还原单拍脉冲。适合低频事件同步，占两拍延迟。",
+    tags: ["手写", "CDC"]
   },
+
+  /* ================= 阶段2 · C5 同步 FIFO ================= */
   {
-    id: "sv-001",
-    topic: "SystemVerilog验证",
+    id: "c5-01",
+    topic: "C5 同步FIFO",
     type: "choice",
-    question: "SystemVerilog 中 logic 与 bit/wire 的本质区别是？",
+    question: "深度 8 的同步 FIFO，空、满判定的经典计数器法是？",
     options: [
-      "logic 是 4 态（0/1/x/z），bit 是 2 态，wire 是网络类型",
-      "logic 只能用于组合逻辑",
-      "bit 支持 x 传播",
-      "wire 是 2 态且不能被过程块赋值"
+      "空 = (wptr == rptr)，满 = (wptr - rptr == 8)",
+      "空 = (count == 0)，满 = (count == 8)，同拍读写时 count 保持不变",
+      "空 = (count == 8)，满 = (count == 0)",
+      "空满都用 (wptr == rptr) 判断"
     ],
-    answer: 0,
-    explanation: "logic 是 4 态变量类型，可被 assign 或过程块驱动（单驱动源）；bit 是 2 态，仿真更快但会掩盖 x 态问题，验证中要留意。",
-    tags: ["SystemVerilog", "高频"]
+    answer: 1,
+    explanation: "计数器法：count 跟踪队列元素数——写不满则 +1、读不空则 -1、同时读写不变。wptr==rptr 只能判空，判满需 count 或扩展一位指针法。",
+    tags: ["FIFO", "同步FIFO"]
   },
   {
-    id: "sv-002",
-    topic: "SystemVerilog验证",
+    id: "c5-02",
+    topic: "C5 同步FIFO",
     type: "judge",
-    question: "简答：UVM 中 sequence / sequencer / driver 三者的角色与 handshake（seq_item_port）机制。",
-    answer_ref: "参考：sequence 生成事务（item）；sequencer 仲裁多个 sequence 的访问；driver 通过 get_next_item/item_done（或 get/put）与 sequencer 握手，把事务 pin 级驱动到接口。",
-    explanation: "关键字：uvm_sequence_item、`uvm_do / start_item-finish_item、get_next_item 后必须 item_done，否则 sequence 卡死。",
-    tags: ["UVM"]
+    question: "手写：深度 8、数据宽度 8 的同步 FIFO：端口 clk/rst_n/wen/ren/wdata/rdata/empty/full，用 count 法判空满。",
+    answer_ref: "参考：\nmodule sync_fifo #(parameter DEPTH=8, DW=8)(\n  input  wire clk, rst_n, wen, ren,\n  input  wire [DW-1:0] wdata,\n  output reg  [DW-1:0] rdata,\n  output wire empty, full\n);\n  reg [DW-1:0] mem [0:DEPTH-1];\n  reg [2:0] wptr, rptr;\n  reg [3:0] count;                 // 深度 8 需 4 位\n  assign empty = (count == 4'd0);\n  assign full  = (count == 4'd8);\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      wptr <= 0; rptr <= 0; count <= 0; rdata <= 0;\n    end else begin\n      if (wen && !full) begin mem[wptr] <= wdata; wptr <= wptr + 1'b1; end\n      if (ren && !empty) begin rdata <= mem[rptr]; rptr <= rptr + 1'b1; end\n      case ({wen && !full, ren && !empty})\n        2'b10:   count <= count + 1'b1;\n        2'b01:   count <= count - 1'b1;\n        default: count <= count;   // 同拍读写不变\n      endcase\n    end\n  end\nendmodule",
+    explanation: "三块拼图：存储阵列（mem+双指针）、空满比较、count 维护。写读同拍 count 不变是计数器法的关键细节。",
+    tags: ["手写", "FIFO"]
   },
   {
-    id: "sv-003",
-    topic: "SystemVerilog验证",
+    id: "c5-03",
+    topic: "C5 同步FIFO",
     type: "choice",
-    question: "以下约束随机化后 x 的可能取值是？\nrand bit [3:0] x;\nconstraint c { x inside {[2:5], 7}; x != 3; }",
-    options: ["2,4,5,7", "2,3,4,5,7", "0,1,6", "2,4,5"]
-    , answer: 0,
-    explanation: "inside 表示属于集合 {[2:5], 7}，再排除 3，所以是 {2,4,5,7}。约束求解在声明范围内取满足所有约束的值。",
-    tags: ["约束随机"]
+    question: "同步 FIFO「同时读写」且 FIFO 不空不满时，count 如何变化？",
+    options: ["加 1", "减 1", "不变", "取决于写入数据"],
+    answer: 2,
+    explanation: "一写一读元素数不变：count + 1 - 1 = 不变。漏掉这个 case 是 FIFO 计数器法的头号 bug 来源（会导致空满误判）。",
+    tags: ["FIFO", "细节"]
   },
+
+  /* ================= 阶段2 · C6 异步 FIFO ================= */
   {
-    id: "sv-004",
-    topic: "SystemVerilog验证",
-    type: "judge",
-    question: "简答：coverage 驱动验证中，功能覆盖率和代码覆盖率的区别与互补关系。",
-    answer_ref: "参考：代码覆盖率（行/分支/表达式/翻转/状态机）由工具自动收集，反映「实现了的代码是否被执行」；功能覆盖率（covergroup/coverpoint/cross）反映「验证意图与规格场景是否覆盖」。代码覆盖率高但功能低说明测试没对准需求；功能高代码低说明存在死代码或场景遗漏。",
-    explanation: "退出标准通常：两个覆盖率都收敛到目标值，且 bug 发现率趋于 0。",
-    tags: ["覆盖率"]
-  },
-  {
-    id: "dc-001",
-    topic: "数字基础",
-    type: "choice",
-    question: "建立时间（setup）与保持时间（hold）违例分别应该在哪里修？",
-    options: [
-      "setup 修在综合后逻辑/频率，hold 修在后端插 buffer/delay",
-      "两者都只能改时钟频率",
-      "setup 插延迟单元，hold 减逻辑级数",
-      "hold 违例靠降频解决"
-    ],
-    answer: 0,
-    explanation: "setup 与时钟周期相关，可通过优化逻辑、流水线、降频解决；hold 与周期无关，靠后端插延迟（buffer/delay cell）修复，降频无效。",
-    tags: ["STA", "高频"]
-  },
-  {
-    id: "dc-002",
-    topic: "数字基础",
+    id: "c6-01",
+    topic: "C6 异步FIFO",
     type: "choice",
     question: "格雷码适合用于以下哪个场景？",
-    options: ["算术加法运算", "异步 FIFO 指针跨时钟域传递", "高速串行数据编码", "奇偶校验"],
+    options: [
+      "算术加法运算",
+      "异步 FIFO 指针跨时钟域传递",
+      "高速串行数据编码",
+      "奇偶校验"
+    ],
     answer: 1,
     explanation: "格雷码相邻码距为 1，指针跨时钟域采样最多错成相邻值，不会引入非法状态；算术运算反而需要转回二进制。",
-    tags: ["编码", "CDC"]
+    tags: ["CDC", "格雷码", "高频"]
   },
   {
-    id: "dc-003",
-    topic: "数字基础",
-    type: "judge",
-    question: "手算：将二进制 1011 转格雷码，再转回二进制验证。（写出过程）",
-    answer_ref: "参考：二进制 b=1011，格雷 g[3]=b[3]=1，g[2]=b3^b2=1^0=1，g[1]=b2^b1=0^1=1，g[0]=b1^b0=1^1=0 → g=1110。反向：b[3]=g[3]=1，b[2]=b[3]^g[2]=1^1=0，b[1]=b[2]^g[1]=0^1=1，b[0]=b[1]^g[0]=1^0=1 → 1011 ✓",
-    explanation: "公式：g = b ^ (b>>1)；还原从最高位起 b[i] = b[i+1] ^ g[i]。",
-    tags: ["编码"]
-  },
-  {
-    id: "rtl-001",
-    topic: "常见RTL题型",
+    id: "c6-02",
+    topic: "C6 异步FIFO",
     type: "choice",
-    question: "用 always 块实现「检测输入序列 1011（可重叠）」的 Mealy 型检测器，状态数至少为？",
-    options: ["3 个", "4 个", "5 个", "8 个"],
+    question: "异步 FIFO 指针为什么要比地址位宽多一位？空、满条件分别是什么？",
+    options: [
+      "为了存格雷码；空 = 指针相等，满 = 指针相等",
+      "多出的一位记录「是否绕了一圈」；空 = 全部位相等，满 = 最高位相反、低位相同",
+      "多一位用于奇偶校验；空满都靠计数器",
+      "为了对齐数据位宽；满 = 高位相同"
+    ],
     answer: 1,
-    explanation: "跟踪最长可复用前缀：S0(空)/S1(1)/S10(10)/S101(101)，检测到 1011 输出 1 并可复用尾部 1 回 S1，共 4 个状态。可重叠意味着命中后部分后缀可作新前缀。",
-    tags: ["序列检测", "状态机"]
+    explanation: "N 位地址 + 1 位回绕标志：空时两指针完全相等（同圈同位置）；满时两指针都绕了一圈回到同一位置（最高位取反、低位相同）。仅凭 N 位相等无法区分空与满。",
+    tags: ["异步FIFO", "指针", "高频"]
   },
   {
-    id: "rtl-002",
-    topic: "常见RTL题型",
+    id: "c6-03",
+    topic: "C6 异步FIFO",
     type: "judge",
-    question: "手写：用 Verilog 实现带异步复位、使能的 8 位向上计数器，计数到 200 时产生单周期脉冲 tick。写出关键代码。",
-    answer_ref: "参考：\nreg [7:0] cnt; wire tick;\nalways @(posedge clk or negedge rst_n)\n  if (!rst_n) cnt <= 0;\n  else if (en) cnt <= (cnt==8'd200) ? 0 : cnt+1'b1;\nassign tick = (cnt==8'd200);\n注意 200 < 256，8 位够用；tick 用组合比较产生，跟随 cnt 值单拍有效。",
-    explanation: "若要求 tick 严格单周期且无毛刺，可将比较结果再打一拍输出。",
-    tags: ["计数器", "手写代码"]
+    question: "手写：二进制转格雷码的 assign 表达式，并用一句话说明为什么格雷码适合指针同步。",
+    answer_ref: "参考：\nassign gray = bin ^ (bin >> 1);\n还原：bin[i] = bin[i+1] ^ gray[i]（从最高位迭代）。\n适合同步的原因：相邻数值的格雷码仅 1 位不同，跨时钟采样即使亚稳/偏斜，结果也只会是「相邻值之一」，FIFO 空满判断在保守方向上不会错。",
+    explanation: "g = b ^ (b>>1) 是转换公式；核心性质是相邻码距为 1 → 采样误差受限于相邻值，方向保守安全。",
+    tags: ["手写", "格雷码"]
+  },
+  {
+    id: "c6-04",
+    topic: "C6 异步FIFO",
+    type: "choice",
+    question: "异步 FIFO 的深度通常取 2 的幂，最主要的原因是？",
+    options: [
+      "综合工具只支持 2 的幂",
+      "指针自然回绕截断即对深度取模，无需额外取模逻辑；格雷码回绕也保持相邻码距为 1",
+      "为了省电",
+      "内存颗粒按 2 的幂组织"
+    ],
+    answer: 1,
+    explanation: "深度 2^N 时指针位宽 N+1，递增溢出自动回绕 = 免费取模；格雷码在回绕点同样只变 1 位，空满比较逻辑保持正确。非 2 幂深度需要额外回绕处理，容易出错。",
+    tags: ["异步FIFO", "深度"]
   }
 ];
 
-/* ====== 学习路线（参考站的 6 站路线） ====== */
+/* 学习路线：阶段 → 模块。topics 与上方题目 topic 严格一致。 */
 const ROADMAP = [
-  { name: "数字基础", desc: "数制与编码、组合/时序逻辑、STA 入门", topics: ["数字基础"] },
-  { name: "Verilog 基础", desc: "阻塞/非阻塞、组合与时序建模、复位设计", topics: ["阻塞与非阻塞赋值", "复位设计"] },
-  { name: "RTL 进阶题型", desc: "状态机、序列检测、计数器等手写题", topics: ["状态机设计", "常见RTL题型"] },
-  { name: "CDC 与 FIFO", desc: "跨时钟域处理、异步 FIFO、格雷码", topics: ["CDC跨时钟域", "FIFO设计"] },
-  { name: "SystemVerilog", desc: "类型系统、约束随机、覆盖率", topics: ["SystemVerilog验证", "约束随机", "覆盖率"] },
-  { name: "UVM", desc: "组件角色、sequence/driver 握手、objection（题库补充中）", topics: ["UVM"] }
+  {
+    name: "阶段0 · 组合逻辑",
+    desc: "M1-M5：门与三态、MUX、译码/优先编码、加法比较、latch 陷阱",
+    topics: ["M1 基本门与三态", "M2 多路选择器", "M3 译码与优先编码", "M4 加法与比较", "M5 组合陷阱"]
+  },
+  {
+    name: "阶段1 · 时序原语",
+    desc: "M6-M9：触发器与复位、边沿检测、计数器、分频器",
+    topics: ["M6 触发器", "M7 边沿检测", "M8 计数器", "M9 分频器"]
+  },
+  {
+    name: "阶段2 · 编码六件套",
+    desc: "计数器→序列检测/生成→去毛刺→跨时钟→同步FIFO→异步FIFO（手写面试题套路）",
+    topics: ["C1 计数器", "C2 序列检测", "C3 去毛刺", "C4 跨时钟域", "C5 同步FIFO", "C6 异步FIFO"]
+  }
 ];
 
-const DAILY_COUNT = 5; // 每日打卡题数
+const DAILY_COUNT = 5;

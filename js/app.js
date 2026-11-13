@@ -84,7 +84,7 @@ function renderHome() {
     <div class="hero">
       <div class="eyebrow">个人 IC 题库</div>
       <h1>刷题，从此刻开始。</h1>
-      <p class="sub">${QUESTIONS.length} 道题 · 6 站学习路线 · 断点续刷、错题重做、每日打卡</p>
+      <p class="sub">${QUESTIONS.length} 道题 · 3 阶段学习路线 · 断点续刷、错题重做、每日打卡</p>
       <div class="hero-actions">
         ${cont && cont.pos < cont.order.length ? `<a class="btn" href="#/practice?mode=resume&set=${encodeURIComponent(cont.setId)}">继续上次学习</a>` : `<a class="btn" href="#/daily">开始今日打卡</a>`}
         <a class="link-arrow" href="#/roadmap">浏览学习路线 ›</a>
@@ -530,7 +530,7 @@ function renderRoadmap() {
     <div class="page-head">
       <p class="eyebrow">学习路线</p>
       <h1>从基础到实战。</h1>
-      <p class="sub">6 站循序渐进，每站刷完进入下一站。</p>
+      <p class="sub">3 个阶段 15 个模块：组合逻辑 → 时序原语 → 编码六件套。</p>
     </div>
     <div id="roadCard" style="padding-top:12px"></div>`;
   const card = document.getElementById("roadCard");
