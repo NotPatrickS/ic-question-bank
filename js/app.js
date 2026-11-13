@@ -235,6 +235,7 @@ function renderQuestionBody(id, ctx) {
           </div>
         </div>
         <div class="cw-editor"><div id="cwMount"></div></div>
+
         <div class="cw-actions">
           <button class="btn" id="cwRun">▶ 运行自检</button>
           <button class="btn ghost" id="revealRef">查看参考答案</button>

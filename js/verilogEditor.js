@@ -1,18 +1,41 @@
-/* ====== Verilog 代码编辑器 ======
+/* ====== Verilog 代码编辑器（带实时语法高亮） ======
  * makeEditor(mount, { value, rows, onChange }) -> { get, set, focus }
+ * 结构：透明 <textarea> 叠在同样式的高亮 <pre> 上，输入即重新着色。
  * 功能：Tab 缩进两空格、回车自动对齐 begin/end、括号/引号补全。
- * 底层是普通 <textarea>，样式交给 .ceditor。
+ * 高亮依赖 app.js 的 highlightSV（makeEditor 只在页面脚本加载后才被调用）。
  */
 function makeEditor(mount, { value = "", rows = 14, onChange } = {}) {
+  const wrap = document.createElement("div");
+  wrap.className = "ceditor-wrap";
+
+  const hl = document.createElement("pre");
+  hl.className = "ceditor-hl";
+
   const ta = document.createElement("textarea");
-  ta.className = "ceditor";
+  ta.className = "ceditor-ta";
   ta.rows = rows;
   ta.spellcheck = false;
+  ta.wrap = "off";
   ta.value = value;
   ta.setAttribute("autocapitalize", "off");
   ta.setAttribute("autocomplete", "off");
   ta.setAttribute("autocorrect", "off");
-  mount.appendChild(ta);
+
+  wrap.appendChild(hl);
+  wrap.appendChild(ta);
+  mount.appendChild(wrap);
+
+  function paint(src) {
+    return (typeof highlightSV === "function") ? highlightSV(src) : src;
+  }
+  function render() {
+    hl.innerHTML = paint(ta.value) + "\n";
+    syncScroll();
+  }
+  function syncScroll() {
+    hl.scrollTop = ta.scrollTop;
+    hl.scrollLeft = ta.scrollLeft;
+  }
 
   const INDENT = "  ";
 
@@ -25,6 +48,9 @@ function makeEditor(mount, { value = "", rows = 14, onChange } = {}) {
     while (j < text.length && (text[j] === " " || text[j] === "\t")) j++;
     return text.slice(lineBegin, j);
   }
+
+  ta.addEventListener("input", fire);
+  ta.addEventListener("scroll", syncScroll);
 
   ta.addEventListener("keydown", e => {
     const { selectionStart: s, selectionEnd: t, value: v } = ta;
@@ -67,7 +93,16 @@ function makeEditor(mount, { value = "", rows = 14, onChange } = {}) {
       return;
     }
 
-    const PAIRS = { "(": ")", "[": "]", "'": "'" };
+    // 键入闭合符时，若下一个字符正是它，则跳过而不是重复插入。
+    // 注意：Verilog 的 ' 出现在 1'bz / 4'b1010 等字面量中间，不能自动配对。
+    const CLOSERS = { ")": true, "]": true };
+    if (CLOSERS[e.key] && s === t && v[s] === e.key) {
+      e.preventDefault();
+      ta.selectionStart = ta.selectionEnd = s + 1;
+      fire(); return;
+    }
+
+    const PAIRS = { "(": ")", "[": "]" };
     if (PAIRS[e.key] && s === t) {
       e.preventDefault();
       ta.value = v.slice(0, s) + e.key + PAIRS[e.key] + v.slice(t);
@@ -77,11 +112,13 @@ function makeEditor(mount, { value = "", rows = 14, onChange } = {}) {
   });
 
   let changeCb = onChange;
-  function fire() { if (changeCb) changeCb(ta.value); }
+  function fire() { render(); if (changeCb) changeCb(ta.value); }
+
+  render();
 
   return {
     get: () => ta.value,
-    set(v) { ta.value = v; },
+    set(v) { ta.value = v; render(); },
     focus: () => ta.focus(),
     setOnChange(cb) { changeCb = cb; },
     el: ta

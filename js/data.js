@@ -11,6 +11,22 @@ const QUESTIONS = [
   {
     id: "m1-01",
     topic: "M1 基本门与三态",
+    type: "judge",
+    question: "手写：模块端口 a、b、sel_in（低有效），实现 y = a 与 b 的与，再经 sel_in 控制的三态输出（sel_in=0 时输出有效）。",
+    starter: "// 低有效使能的三态与门\nmodule tri_and(\n  input  wire a, b,\n  input  wire sel_in,   // 低有效\n  output wire y\n);\n  wire and_out = a & b;\n  // TODO: 在下方补全三态输出（提示：sel_in=0 时输出有效，无效时输出 1'bz）\n\nendmodule",
+    checks: [
+      { desc: "声明了 y 的驱动语句（assign 或 always 块）", re: "assign\\s+y\\s*=|always\\s*@\\s*\\(\\s*\\*\\s*\\)" },
+      { desc: "自己写出与运算并驱动 y", re: "assign\\s+y\\s*=.*&|y\\s*(<=|=)\\s*and_out" },
+      { desc: "无效时输出高阻 1'bz", re: "1\\s*'{\\s*b\\s*[zZ]|'bz" },
+      { desc: "用低有效判断（!sel_in / ~sel_in / sel_in == 1'b0）", re: "!\\s*sel_in|~\\s*sel_in|sel_in\\s*==\\s*1\\s*'b0" }
+    ],
+    solution: "module tri_and(\n  input  wire a, b,\n  input  wire sel_in,\n  output wire y\n);\n  assign y = (!sel_in) ? (a & b) : 1'bz;\n  // 或 assign y = (!sel_in) ? a & b : 1'bz;\nendmodule",
+    explanation: "三态门 = 组合结果 + 使能选择 1'bz。低有效使能判断 !sel_in。",
+    tags: ["手写", "三态"]
+  },
+  {
+    id: "m1-02",
+    topic: "M1 基本门与三态",
     type: "choice",
     question: "用 assign 描述一个与门 y = a & b，y 应该声明为什么类型？",
     options: ["reg", "wire", "logic 且必须过程赋值", "integer"],
@@ -20,7 +36,7 @@ const QUESTIONS = [
     tags: ["组合逻辑", "基础"]
   },
   {
-    id: "m1-02",
+    id: "m1-03",
     topic: "M1 基本门与三态",
     type: "choice",
     question: "下列哪种写法能实现高电平使能的三态输出（使能无效时输出悬空）？",
@@ -36,7 +52,7 @@ const QUESTIONS = [
     tags: ["组合逻辑", "三态"]
   },
   {
-    id: "m1-03",
+    id: "m1-04",
     topic: "M1 基本门与三态",
     type: "choice",
     question: "两个 assign 同时驱动同一个 wire（一个输出 1，一个输出 0），仿真和综合分别会怎样？",
@@ -49,22 +65,6 @@ const QUESTIONS = [
     answer: 0,
     explanation: "1 与 0 同时驱动 1 位线网，仿真中解析为未知态 x；综合时这是总线冲突，通常直接报错，或按工艺生成有损/非法结构。三态总线只允许「同时至多一个有效驱动」。",
     tags: ["组合逻辑", "多驱动"]
-  },
-  {
-    id: "m1-04",
-    topic: "M1 基本门与三态",
-    type: "judge",
-    question: "手写：模块端口 a、b、sel_in（低有效），实现 y = a 与 b 的与，再经 sel_in 控制的三态输出（sel_in=0 时输出有效）。",
-    starter: "// 低有效使能的三态与门\nmodule tri_and(\n  input  wire a, b,\n  input  wire sel_in,   // 低有效\n  output wire y\n);\n  wire and_out = a & b;\n  // TODO: 在下方补全三态输出（提示：sel_in=0 时输出有效，无效时输出 1'bz）\n\nendmodule",
-    checks: [
-      { desc: "声明了 y 的驱动语句（assign 或 always 块）", re: "assign\\s+y\\s*=|always\\s*@\\s*\\(\\s*\\*\\s*\\)" },
-      { desc: "自己写出与运算并驱动 y", re: "assign\\s+y\\s*=.*&|y\\s*(<=|=)\\s*and_out" },
-      { desc: "无效时输出高阻 1'bz", re: "1\\s*'{\\s*b\\s*[zZ]|'bz" },
-      { desc: "用低有效判断（!sel_in / ~sel_in / sel_in == 1'b0）", re: "!\\s*sel_in|~\\s*sel_in|sel_in\\s*==\\s*1\\s*'b0" }
-    ],
-    solution: "module tri_and(\n  input  wire a, b,\n  input  wire sel_in,\n  output wire y\n);\n  assign y = (!sel_in) ? (a & b) : 1'bz;\n  // 或 assign y = (!sel_in) ? a & b : 1'bz;\nendmodule",
-    explanation: "三态门 = 组合结果 + 使能选择 1'bz。低有效使能判断 !sel_in。",
-    tags: ["手写", "三态"]
   },
   {
     id: "m1-05",
