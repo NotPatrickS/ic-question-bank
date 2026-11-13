@@ -144,14 +144,18 @@ function renderTopic() {
     </div>`;
 
   const list = document.getElementById("qlist");
-  qs.forEach(q => {
+  qs.forEach((q, i) => {
     const st = Store.status(q.id);
+    const isCode = q.type === "judge" && q.starter;
     const row = document.createElement("div");
     row.className = "qlist-item";
     row.innerHTML = `
+      <span class="qnum">${String(i + 1).padStart(2, "0")}</span>
+      <span class="qtype ${isCode ? "code" : "choice"}" title="${isCode ? "编程题" : "单选题"}">${isCode ? "&lt;/&gt;" : "A"}</span>
       <div class="qtext">${esc(q.question.split("\n")[0])}</div>
       ${st === "right" ? '<span class="pill ok">已掌握</span>' : st === "wrong" ? '<span class="pill bad">做错过</span>' : ""}
-      ${Store.marks[q.id] ? '<span class="pill warn">需复习</span>' : ""}`;
+      ${Store.marks[q.id] ? '<span class="pill warn">需复习</span>' : ""}
+      <span class="qchev">›</span>`;
     row.onclick = () => nav("#/q?id=" + q.id);
     list.appendChild(row);
   });

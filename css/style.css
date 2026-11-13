@@ -254,13 +254,31 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 0 22px 8
 /* ====== 列表：细分隔线行 ====== */
 .qlist-item {
   display: flex; align-items: center; gap: 14px;
-  padding: 16px 4px; border-bottom: 1px solid var(--line);
-  cursor: pointer; font-size: 15px;
+  padding: 15px 14px; margin: 0 -14px; border-bottom: 1px solid var(--line);
+  cursor: pointer; font-size: 15px; border-radius: 12px;
+  transition: background .15s ease;
 }
+.qlist-item:hover { background: var(--bg); }
 .qlist-item:last-child { border-bottom: none; }
 .qlist-item:hover .qtext { color: var(--blue); }
 .qlist-item .qtext { flex: 1; line-height: 1.5; }
 .qlist-item .qid { color: var(--muted); font-size: 12px; flex: none; font-family: ui-monospace, Menlo, monospace; }
+.qnum {
+  flex: none; width: 30px; color: var(--muted); font-size: 12px;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.qtype {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-family: ui-monospace, Menlo, monospace;
+}
+.qtype.code { background: #1d1d1f; color: #30d158; }
+.qtype.choice { background: var(--blue-weak); color: var(--blue); }
+.qlist-item .qchev {
+  flex: none; color: var(--muted); font-size: 20px; line-height: 1;
+  opacity: 0; transform: translateX(-4px); transition: all .15s ease;
+}
+.qlist-item:hover .qchev { opacity: 1; transform: translateX(0); }
 
 /* ====== 统计 ====== */
 table.stats { width: 100%; border-collapse: collapse; font-size: 14px; }
