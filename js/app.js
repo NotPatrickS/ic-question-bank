@@ -222,7 +222,7 @@ function renderQuestionBody(id, ctx) {
         <button class="btn small ${marked === "unknown" ? "red" : "ghost"}" id="mkUnknown">暂不会</button>
       </div>
       <h2 class="qtitle">${esc(q.question).replace(/\n/g, "<br>")}</h2>
-      ${q.code ? `<pre class="code">${esc(q.code)}</pre>` : ""}
+      ${q.code ? codeBlock(q.code) : ""}
       <div id="answerArea"></div>
       <div id="judgeArea" ${isJudge ? "" : 'style="display:none"'}>
         <div class="qactions">
@@ -560,7 +560,68 @@ function renderRoadmap() {
   });
 }
 
-/* ---------- 全局搜索框 ---------- */
+/* ---------- SystemVerilog 轻量语法高亮 ---------- */
+function highlightSV(src) {
+  const KEYWORDS = new Set(("always always_comb always_ff always_latch and assign automatic begin bit break buf case casex casez cell" +
+    " cmos config deassign default defparam design disable edge else end endcase endconfig endfunction endgenerate endinterface" +
+    " endmodule endpackage endprimitive endprogram endspecify endtable endtask enum event for force forever fork function generate" +
+    " genvar highz0 highz1 if ifnone incdir include initial inout input instance integer interface join join_any join_none large" +
+    " liblist library localparam logic longint macromodule medium module nand negedge nmos nor noshowcancelled not notif0 notif1" +
+    " or output parameter pmos posedge primitive pull0 pull1 pulldown pullup pulsestyle_onevent pulsestyle_ondetect rcmos real realtime" +
+    " reg release repeat rnmos rpmos rtran rtranif0 rtranif1 scalared signed small specify specparam strong0 strong1 supply0 supply1" +
+    " table task time tran tranif0 tranif1 tri tri0 tri1 triand trior trireg unsigned use uwire vectored wait wand weak0 weak1 while" +
+    " wire wor xnor xor struct typedef unique priority return void").split(" "));
+  const out = [];
+  let i = 0, n = src.length;
+  const push = (txt, cls) => out.push(cls ? `<span class="tok-${cls}">${esc(txt)}</span>` : esc(txt));
+  while (i < n) {
+    const ch = src[i];
+    // comments
+    if (ch === "/" && src[i + 1] === "/") {
+      let j = src.indexOf("\n", i); if (j < 0) j = n;
+      push(src.slice(i, j), "com"); i = j; continue;
+    }
+    if (ch === "/" && src[i + 1] === "*") {
+      let j = src.indexOf("*/", i + 2); j = j < 0 ? n : j + 2;
+      push(src.slice(i, j), "com"); i = j; continue;
+    }
+    // strings
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < n && src[j] !== '"') { if (src[j] === "\\") j++; j++; }
+      push(src.slice(i, Math.min(j + 1, n)), "str"); i = j + 1; continue;
+    }
+    // based numbers: 4'b1010, 8'hFF, 'd10, 1'b1, 'b0
+    let m = /^(\d*)'([bodhBODH])([0-9a-fA-FxXzZ_?]+)/.exec(src.slice(i));
+    if (m) { push(m[0], "num"); i += m[0].length; continue; }
+    // plain decimal numbers
+    m = /^\d[\d_]*(\.\d+)?/.exec(src.slice(i));
+    if (m) { push(m[0], "num"); i += m[0].length; continue; }
+    // identifiers / keywords / system tasks
+    if (/[A-Za-z_$]/.test(ch)) {
+      let j = i + 1;
+      while (j < n && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      const word = src.slice(i, j);
+      if (word[0] === "$") push(word, "sys");
+      else if (KEYWORDS.has(word.toLowerCase())) push(word, "kw");
+      else if (/^[A-Z][A-Z0-9_]*$/.test(word)) push(word, "const");
+      else push(word);
+      i = j; continue;
+    }
+    // operators: multi-char first
+    const two = src.slice(i, i + 2);
+    if (["<=", ">=", "==", "!=", "&&", "||", "<<", ">>", "==="].includes(two) || (ch === "=" && src[i + 1] === "=")) {
+      push(two, "op"); i += 2; continue;
+    }
+    if ("=+-*/%!<>&|^~?:@#.".includes(ch)) { push(ch, "op"); i++; continue; }
+    push(ch); i++;
+  }
+  return out.join("");
+}
+function codeBlock(src) {
+  return `<pre class="code">${highlightSV(src)}</pre>`;
+}
+
 document.getElementById("searchForm").addEventListener("submit", e => {
   e.preventDefault();
   const kw = document.getElementById("searchInput").value.trim();

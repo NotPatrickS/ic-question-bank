@@ -188,6 +188,13 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 0 22px 8
   overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 0 0 20px;
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 }
+.code .tok-kw    { color: #ff7ab2; font-weight: 600; }  /* 关键词 */
+.code .tok-num   { color: #d0bf69; }                    /* 数字字面量 4'b1010 / 8'hFF */
+.code .tok-com   { color: #6c7986; font-style: italic; } /* 注释 */
+.code .tok-str   { color: #ff8170; }                    /* 字符串 */
+.code .tok-sys   { color: #dabaff; }                    /* $display 等系统任务 */
+.code .tok-op    { color: #67b7a4; }                    /* 运算符 */
+.code .tok-const { color: #ac8d58; }                    /* 大写常量 S0 / IDLE */
 
 .explain { margin-top: 18px; padding: 18px 22px; background: var(--bg); border-radius: 16px; font-size: 14px; line-height: 1.75; }
 .explain b { color: var(--blue); }
