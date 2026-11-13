@@ -10,6 +10,7 @@ const QUESTIONS = [
   /* ================= 阶段0 · M1 基本门与三态 ================= */
   {
     id: "m1-01",
+    title: "三态与门",
     topic: "M1 基本门与三态",
     type: "judge",
     question: "手写：模块端口 a、b、sel_in（低有效），实现 y = a 与 b 的与，再经 sel_in 控制的三态输出（sel_in=0 时输出有效）。",
@@ -26,6 +27,7 @@ const QUESTIONS = [
   },
   {
     id: "m1-02",
+    title: "与门 wire 声明",
     topic: "M1 基本门与三态",
     type: "choice",
     question: "用 assign 描述一个与门 y = a & b，y 应该声明为什么类型？",
@@ -37,6 +39,7 @@ const QUESTIONS = [
   },
   {
     id: "m1-03",
+    title: "三态输出写法",
     topic: "M1 基本门与三态",
     type: "choice",
     question: "下列哪种写法能实现高电平使能的三态输出（使能无效时输出悬空）？",
@@ -53,6 +56,7 @@ const QUESTIONS = [
   },
   {
     id: "m1-04",
+    title: "多驱动冲突",
     topic: "M1 基本门与三态",
     type: "choice",
     question: "两个 assign 同时驱动同一个 wire（一个输出 1，一个输出 0），仿真和综合分别会怎样？",
@@ -68,6 +72,7 @@ const QUESTIONS = [
   },
   {
     id: "m1-05",
+    title: "wire 与 reg 区别",
     topic: "M1 基本门与三态",
     type: "choice",
     question: "关于 wire 与 reg，下列说法正确的是？",
@@ -85,6 +90,7 @@ const QUESTIONS = [
   /* ================= 阶段0 · M2 多路选择器 ================= */
   {
     id: "m2-01",
+    title: "三风格 2 选 1 MUX",
     topic: "M2 多路选择器",
     type: "judge",
     question: "手写：分别用三种风格实现 2 选 1 MUX（a、b、sel → y）：① assign + 条件运算符；② always @(*) + if-else；③ always @(*) + case。",
@@ -100,6 +106,7 @@ const QUESTIONS = [
   },
   {
     id: "m2-02",
+    title: "MUX case 完整性",
     topic: "M2 多路选择器",
     type: "choice",
     question: "4 选 1 MUX 用 case(sel) 实现，若 case 分支只写了 2'b00、2'b01、2'b10 三种，sel=2'b11 时输出？",
@@ -116,6 +123,7 @@ const QUESTIONS = [
   },
   {
     id: "m2-03",
+    title: "MUX 条件等价式",
     topic: "M2 多路选择器",
     type: "choice",
     question: "下列哪个表达式与「sel 为真选 b 否则选 a」不等价？",
@@ -131,6 +139,7 @@ const QUESTIONS = [
   },
   {
     id: "m2-04",
+    title: "8 选 1 位选择",
     topic: "M2 多路选择器",
     type: "judge",
     question: "手写：8 选 1 MUX，数据输入 d[7:0]，选择信号 sel[2:0]，要求用变量位选择一行 assign 实现（提示：d[sel]）。",
@@ -147,6 +156,7 @@ const QUESTIONS = [
   /* ================= 阶段0 · M3 译码器与优先编码器 ================= */
   {
     id: "m3-01",
+    title: "3-8 译码器",
     topic: "M3 译码与优先编码",
     type: "judge",
     question: "手写：3-8 译码器，输入 sel[2:0]、使能 en（高有效），输出 onehot[7:0]（en 无效时输出全 0）。",
@@ -162,6 +172,7 @@ const QUESTIONS = [
   },
   {
     id: "m3-02",
+    title: "优先编码器结构",
     topic: "M3 译码与优先编码",
     type: "choice",
     question: "8-3 优先编码器要求「数值最大的请求优先」，输入 req[7:0]（1 有效），应优先使用哪种结构？",
@@ -177,6 +188,7 @@ const QUESTIONS = [
   },
   {
     id: "m3-03",
+    title: "casez 通配分支",
     topic: "M3 译码与优先编码",
     type: "choice",
     question: "casez 中，分支写成 4'b1??? 表示？",
@@ -193,6 +205,7 @@ const QUESTIONS = [
   },
   {
     id: "m3-04",
+    title: "4-2 优先编码器",
     topic: "M3 译码与优先编码",
     type: "judge",
     question: "手写：4-2 优先编码器，输入 req[3:0]（1 有效，req[3] 优先级最高），输出 code[1:0] 和 valid（无请求时 valid=0）。用 casez 实现。",
@@ -210,6 +223,7 @@ const QUESTIONS = [
   /* ================= 阶段0 · M4 加法器与比较器 ================= */
   {
     id: "m4-01",
+    title: "全加器与行波进位",
     topic: "M4 加法与比较",
     type: "judge",
     question: "手写：全加器 fa(a, b, cin → sum, cout)，再用结构化方式例化两个 fa 组成 2 位行波加法器 add2(x[1:0], y[1:0] → s[1:0], co)。",
@@ -226,6 +240,7 @@ const QUESTIONS = [
   },
   {
     id: "m4-02",
+    title: "加法进位位宽",
     topic: "M4 加法与比较",
     type: "choice",
     question: "两个 8 位无符号数 a+b，为使进位 cout 不丢失，正确写法是？",
@@ -242,6 +257,7 @@ const QUESTIONS = [
   },
   {
     id: "m4-03",
+    title: "4 位比较器",
     topic: "M4 加法与比较",
     type: "judge",
     question: "手写：4 位无符号比较器，输出 gt（a>b）、eq、lt，要求写出直接比较式，并附「减法借位」视角的等价实现思路。",
@@ -257,6 +273,7 @@ const QUESTIONS = [
   },
   {
     id: "m4-04",
+    title: "行波进位延迟",
     topic: "M4 加法与比较",
     type: "choice",
     question: "行波进位加法器位宽加倍，最坏路径延迟大约？",
@@ -269,6 +286,7 @@ const QUESTIONS = [
   /* ================= 阶段0 · M5 组合陷阱：latch ================= */
   {
     id: "m5-01",
+    title: "组合块防 latch",
     topic: "M5 组合陷阱",
     type: "choice",
     question: "下列组合 always 块中，哪种写法不会产生锁存器？",
@@ -284,6 +302,7 @@ const QUESTIONS = [
   },
   {
     id: "m5-02",
+    title: "敏感列表遗漏",
     topic: "M5 组合陷阱",
     type: "choice",
     question: "always @(*) 中读了信号 tmp，但敏感列表手写成了 always @(a, b) 漏掉 tmp，会怎样？",
@@ -299,6 +318,7 @@ const QUESTIONS = [
   },
   {
     id: "m5-03",
+    title: "latch 改写练习",
     topic: "M5 组合陷阱",
     type: "judge",
     question: "找错并改正：下面的组合逻辑想实现「en 时 y=b 否则 y=a」，当前会产生 latch，请给出两种不产生 latch 的改法。",
@@ -316,6 +336,7 @@ const QUESTIONS = [
   /* ================= 阶段1 · M6 触发器 ================= */
   {
     id: "m6-01",
+    title: "异步复位 DFF",
     topic: "M6 触发器",
     type: "choice",
     question: "下列哪种描述会综合成带异步复位的 D 触发器？",
@@ -332,6 +353,7 @@ const QUESTIONS = [
   },
   {
     id: "m6-02",
+    title: "复位+使能 DFF",
     topic: "M6 触发器",
     type: "judge",
     question: "手写：带低有效异步复位、高有效同步使能 en 的 D 触发器（d → q），en 无效时保持。",
@@ -347,6 +369,7 @@ const QUESTIONS = [
   },
   {
     id: "m6-03",
+    title: "同步异步复位辨析",
     topic: "M6 触发器",
     type: "choice",
     question: "同步复位与异步复位，下列说法错误的是？",
@@ -362,6 +385,7 @@ const QUESTIONS = [
   },
   {
     id: "m6-04",
+    title: "异步复位同步释放",
     topic: "M6 触发器",
     type: "choice",
     question: "关于异步复位、同步释放（async reset, sync release），下列说法正确的是？",
@@ -380,6 +404,7 @@ const QUESTIONS = [
   /* ================= 阶段1 · M7 边沿检测 ================= */
   {
     id: "m7-01",
+    title: "边沿检测写法",
     topic: "M7 边沿检测",
     type: "choice",
     question: "检测 sig 的上升沿，标准两级触发器写法是？",
@@ -396,6 +421,7 @@ const QUESTIONS = [
   },
   {
     id: "m7-02",
+    title: "两级同步+上升沿",
     topic: "M7 边沿检测",
     type: "judge",
     question: "手写：对输入 sig 做两级同步并输出 pos_pulse（sig 上升沿时的单周期脉冲）。",
@@ -411,6 +437,7 @@ const QUESTIONS = [
   },
   {
     id: "m7-03",
+    title: "边沿检测原理",
     topic: "M7 边沿检测",
     type: "choice",
     question: "为什么边沿检测要用两级触发器，而不是直接比较 sig 与其「组合延迟版本」？",
@@ -428,6 +455,7 @@ const QUESTIONS = [
   /* ================= 阶段1 · M8 计数器 ================= */
   {
     id: "m8-01",
+    title: "计数器 tick 脉冲",
     topic: "M8 计数器",
     type: "judge",
     question: "手写：带异步复位、使能的 8 位向上计数器，计数到 200 时产生单周期脉冲 tick，到 200 后回 0（模 201）。",
@@ -443,6 +471,7 @@ const QUESTIONS = [
   },
   {
     id: "m8-02",
+    title: "模 10 计数器",
     topic: "M8 计数器",
     type: "choice",
     question: "想要模 10 计数器（0..9 循环），写成 if (cnt == 4'd9) cnt <= 0; else cnt <= cnt + 1。若删掉对 9 的判断，直接 cnt <= cnt + 1，会发生什么？",
@@ -458,6 +487,7 @@ const QUESTIONS = [
   },
   {
     id: "m8-03",
+    title: "定时脉冲实现",
     topic: "M8 计数器",
     type: "choice",
     question: "实现「每 100 个时钟产生一个单周期脉冲」，以下说法正确的是？",
@@ -473,6 +503,7 @@ const QUESTIONS = [
   },
   {
     id: "m8-04",
+    title: "可预置加减计数器",
     topic: "M8 计数器",
     type: "judge",
     question: "手写：可预置的 4 位加减计数器：up_down=1 加、0 减，load 有效时下一拍载入 d[3:0]，带异步复位。",
@@ -490,6 +521,7 @@ const QUESTIONS = [
   /* ================= 阶段1 · M9 分频器 ================= */
   {
     id: "m9-01",
+    title: "8 分频 50% 占空比",
     topic: "M9 分频器",
     type: "judge",
     question: "手写：偶数分频——把 clk 8 分频，输出占空比 50% 的 clk_div8（分频输出用寄存器生成，不做门控时钟）。",
@@ -505,6 +537,7 @@ const QUESTIONS = [
   },
   {
     id: "m9-02",
+    title: "奇数分频技巧",
     topic: "M9 分频器",
     type: "choice",
     question: "奇数分频（如 3 分频）要输出 50% 占空比，核心技巧是？",
@@ -520,6 +553,7 @@ const QUESTIONS = [
   },
   {
     id: "m9-03",
+    title: "分频时钟隐患",
     topic: "M9 分频器",
     type: "choice",
     question: "为什么不推荐「直接把分频寄存器输出当下游模块的时钟」（如 always @(posedge clk_div)）？",
@@ -535,6 +569,7 @@ const QUESTIONS = [
   },
   {
     id: "m9-04",
+    title: "3 分频 50% 占空比",
     topic: "M9 分频器",
     type: "judge",
     question: "手写：3 分频 50% 占空比输出（提示：上升沿计数产生 div_p，下降沿产生错开半周期的 div_n，clk_div3 = div_p | div_n）。",
@@ -552,6 +587,7 @@ const QUESTIONS = [
   /* ================= 阶段2 · C1 计数器（六件套①） ================= */
   {
     id: "c1-01",
+    title: "FIFO 写指针本质",
     topic: "C1 计数器",
     type: "choice",
     question: "「FIFO 的写指针本质是什么？」——下列说法最准确的是？",
@@ -567,6 +603,7 @@ const QUESTIONS = [
   },
   {
     id: "c1-02",
+    title: "定时 tick 分频链",
     topic: "C1 计数器",
     type: "judge",
     question: "手写：分频链——50MHz 时钟，输出 dsec_tick（每 0.1 秒一个单周期脉冲）和 sec_tick（每秒一个脉冲）。写出计数链。",
@@ -584,6 +621,7 @@ const QUESTIONS = [
   /* ================= 阶段2 · C2 序列检测与生成 ================= */
   {
     id: "c2-01",
+    title: "1011 状态数",
     topic: "C2 序列检测",
     type: "choice",
     question: "实现「检测输入序列 1011（可重叠）」的 Mealy 型检测器，状态数至少为？",
@@ -594,6 +632,7 @@ const QUESTIONS = [
   },
   {
     id: "c2-02",
+    title: "1011 三段式状态机",
     topic: "C2 序列检测",
     type: "judge",
     question: "手写：三段式状态机实现 1011 序列检测（可重叠），输入 din、clk、rst_n，输出 hit（检测到当拍为 1）。",
@@ -609,6 +648,7 @@ const QUESTIONS = [
   },
   {
     id: "c2-03",
+    title: "移位法 vs 状态机",
     topic: "C2 序列检测",
     type: "choice",
     question: "同一序列检测若改用「移位寄存器法」（保存最近 4 拍输入，比较窗口），与状态机法相比？",
@@ -624,6 +664,7 @@ const QUESTIONS = [
   },
   {
     id: "c2-04",
+    title: "序列生成器",
     topic: "C2 序列检测",
     type: "judge",
     question: "手写：序列生成器——循环输出序列 1,0,1,1（每拍一位，无限循环），用计数器+查找表或循环移位任一实现。",
@@ -641,6 +682,7 @@ const QUESTIONS = [
   /* ================= 阶段2 · C3 去毛刺 ================= */
   {
     id: "c3-01",
+    title: "去毛刺经典做法",
     topic: "C3 去毛刺",
     type: "choice",
     question: "按键/异步信号去毛刺（debounce）的经典数字做法是？",
@@ -656,6 +698,7 @@ const QUESTIONS = [
   },
   {
     id: "c3-02",
+    title: "去毛刺模块实现",
     topic: "C3 去毛刺",
     type: "judge",
     question: "手写：对异步输入 din 去毛刺，先两级 FF 同步，再「连续 4 拍与当前输出不同才翻转」，输出 db_out。",
@@ -671,6 +714,7 @@ const QUESTIONS = [
   },
   {
     id: "c3-03",
+    title: "同步去毛刺顺序",
     topic: "C3 去毛刺",
     type: "choice",
     question: "去毛刺模块里「先两级同步、再 N 拍一致」的顺序能否对调？",
@@ -688,6 +732,7 @@ const QUESTIONS = [
   /* ================= 阶段2 · C4 跨时钟域 ================= */
   {
     id: "c4-01",
+    title: "电平信号跨域",
     topic: "C4 跨时钟域",
     type: "choice",
     question: "单 bit 电平信号从 100MHz 域到 33MHz 域，最合适的处理方式是？",
@@ -703,6 +748,7 @@ const QUESTIONS = [
   },
   {
     id: "c4-02",
+    title: "脉冲跨域处理",
     topic: "C4 跨时钟域",
     type: "choice",
     question: "100MHz 域发出一个单周期脉冲给 33MHz 域，直接打两拍会怎样？正确做法是？",
@@ -718,6 +764,7 @@ const QUESTIONS = [
   },
   {
     id: "c4-03",
+    title: "多 bit 跨域",
     topic: "C4 跨时钟域",
     type: "choice",
     question: "跨时钟域传多个相关的控制 bit（如 {valid, addr[3:0]}），为什么不能各自打两拍？",
@@ -733,6 +780,7 @@ const QUESTIONS = [
   },
   {
     id: "c4-04",
+    title: "toggle 同步器",
     topic: "C4 跨时钟域",
     type: "judge",
     question: "手写：toggle 同步器——源域每收到 pulse_a 把 tgl 翻转一次，目的域两级同步 + 边沿检测还原脉冲 pulse_b。",
@@ -750,6 +798,7 @@ const QUESTIONS = [
   /* ================= 阶段2 · C5 同步 FIFO ================= */
   {
     id: "c5-01",
+    title: "同步 FIFO 空满判定",
     topic: "C5 同步FIFO",
     type: "choice",
     question: "深度 8 的同步 FIFO，空、满判定的经典计数器法是？",
@@ -765,6 +814,7 @@ const QUESTIONS = [
   },
   {
     id: "c5-02",
+    title: "同步 FIFO 实现",
     topic: "C5 同步FIFO",
     type: "judge",
     question: "手写：深度 8、数据宽度 8 的同步 FIFO：端口 clk/rst_n/wen/ren/wdata/rdata/empty/full，用 count 法判空满。",
@@ -781,6 +831,7 @@ const QUESTIONS = [
   },
   {
     id: "c5-03",
+    title: "FIFO 同时读写",
     topic: "C5 同步FIFO",
     type: "choice",
     question: "同步 FIFO「同时读写」且 FIFO 不空不满时，count 如何变化？",
@@ -793,6 +844,7 @@ const QUESTIONS = [
   /* ================= 阶段2 · C6 异步 FIFO ================= */
   {
     id: "c6-01",
+    title: "格雷码适用场景",
     topic: "C6 异步FIFO",
     type: "choice",
     question: "格雷码适合用于以下哪个场景？",
@@ -808,6 +860,7 @@ const QUESTIONS = [
   },
   {
     id: "c6-02",
+    title: "异步 FIFO 指针位宽",
     topic: "C6 异步FIFO",
     type: "choice",
     question: "异步 FIFO 指针为什么要比地址位宽多一位？空、满条件分别是什么？",
@@ -823,6 +876,7 @@ const QUESTIONS = [
   },
   {
     id: "c6-03",
+    title: "二转格雷码",
     topic: "C6 异步FIFO",
     type: "judge",
     question: "手写：二进制转格雷码的 assign 表达式，并用一句话说明为什么格雷码适合指针同步。",
@@ -838,6 +892,7 @@ const QUESTIONS = [
   },
   {
     id: "c6-04",
+    title: "FIFO 深度取 2 的幂",
     topic: "C6 异步FIFO",
     type: "choice",
     question: "异步 FIFO 的深度通常取 2 的幂，最主要的原因是？",

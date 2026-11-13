@@ -152,7 +152,7 @@ function renderTopic() {
     row.innerHTML = `
       <span class="qnum">${String(i + 1).padStart(2, "0")}</span>
       <span class="qtype ${isCode ? "code" : "choice"}" title="${isCode ? "编程题" : "单选题"}">${isCode ? '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M5.5 3.5 1 8l4.5 4.5M10.5 3.5 15 8l-4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : "A"}</span>
-      <div class="qtext">${esc(q.question.split("\n")[0])}</div>
+      <div class="qtext">${esc(q.title || q.question.split("\n")[0])}</div>
       ${st === "right" ? '<span class="pill ok">已掌握</span>' : st === "wrong" ? '<span class="pill bad">做错过</span>' : ""}
       ${Store.marks[q.id] ? '<span class="pill warn">需复习</span>' : ""}
       <span class="qchev">›</span>`;
@@ -478,7 +478,7 @@ function renderWrong() {
       const q = BY_ID[id];
       const row = document.createElement("div");
       row.className = "qlist-item";
-      row.innerHTML = `<div class="qtext">${esc(q.question.split("\n")[0])}</div><span class="qid">${id}</span>`;
+      row.innerHTML = `<div class="qtext">${esc(q.title || q.question.split("\n")[0])}</div><span class="qid">${id}</span>`;
       row.onclick = () => nav("#/q?id=" + id);
       m.appendChild(row);
     });
@@ -582,7 +582,7 @@ function renderSearch() {
   hit.forEach(q => {
     const row = document.createElement("div");
     row.className = "qlist-item";
-    row.innerHTML = `<div class="qtext">${esc(q.question.split("\n")[0])}</div><span class="pill gray">${esc(q.topic)}</span>`;
+    row.innerHTML = `<div class="qtext">${esc(q.title || q.question.split("\n")[0])}</div><span class="pill gray">${esc(q.topic)}</span>`;
     row.onclick = () => nav("#/q?id=" + q.id);
     m.appendChild(row);
   });
